@@ -1,0 +1,17 @@
+{
+  "evaluation_id": "5oQzdizcj8aVIGelKjRJ",
+  "split": "test",
+  "confidence_threshold": 0.4,
+  "classes": ["BICHO_DEL_CESTO", "CHINCHE_DAGBERTUS_MINENSIS", "GRILLOS", "OXIDIA", "QUEREZAS", "ROEDORES", "background"],
+  "matrix": [
+    [6,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0],
+    [0,0,6,0,0,0,0],
+    [0,0,0,4,0,0,0],
+    [0,0,0,0,3,0,3],
+    [0,0,0,0,0,2,5],
+    [1,0,2,4,0,1,0]
+  ],
+  "axis_description": "matrix[actual][predicted]; background indica falso positivo o detección omitida",
+  "note": "Extraída de la evaluación Roboflow V2 a umbral 0.40 (no cambiante automáticamente)."
+}

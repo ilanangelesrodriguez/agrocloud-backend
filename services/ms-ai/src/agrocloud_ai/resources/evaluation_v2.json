@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "project": "ilan-angeles/agrocloud-plagas-de-palta",
+    "dataset_version": 2,
+    "model_architecture": "RF-DETR Small",
+    "model_id": "agrocloud-plagas-de-palta-2-rfdetr-small-t1",
+    "evaluation_id": "5oQzdizcj8aVIGelKjRJ",
+    "evaluation_created_at": "2026-10-31T23:45:06.733Z",
+    "evaluation_url": "https://app.roboflow.com/ilan-angeles/agrocloud-plagas-de-palta/evaluation/2",
+    "type": "snapshot_official_roboflow",
+    "note": "Métricas de evaluación, no métricas de producción. No se actualizan automáticamente."
+  },
+  "dataset": {
+    "images": 175, "annotations": 330,
+    "splits": {"train": 123, "valid": 35, "test": 17},
+    "annotations_by_class": {"OXIDIA": 84, "GRILLOS": 70, "ROEDORES": 56, "BICHO_DEL_CESTO": 54, "CHINCHE_DAGBERTUS_MINENSIS": 34, "QUEREZAS": 32},
+    "test_annotations_by_class": {"OXIDIA": 4, "GRILLOS": 6, "ROEDORES": 7, "BICHO_DEL_CESTO": 6, "CHINCHE_DAGBERTUS_MINENSIS": 0, "QUEREZAS": 6}
+  },
+  "test_metrics": {"map50": 0.7843615131, "map50_95": 0.5645165186, "map75": 0.5657539744, "precision": 0.755, "recall": 0.757, "f1_reported": 0.703, "median_latency_ms": 9.5},
+  "validation_metrics": {"map50": 0.7522779481, "map50_95": 0.5933218576, "map75": 0.6765720416},
+  "per_class_test": [
+    {"class_name": "OXIDIA", "map50": 0.950495, "map50_95": 0.891089, "precision": 0.8, "recall": 1.0, "f1": 0.889, "ground_truth_instances": 4},
+    {"class_name": "BICHO_DEL_CESTO", "map50": 0.929279, "map50_95": 0.719010, "precision": 0.857, "recall": 1.0, "f1": 0.923, "ground_truth_instances": 6},
+    {"class_name": "GRILLOS", "map50": 0.915842, "map50_95": 0.642433, "precision": 0.75, "recall": 1.0, "f1": 0.857, "ground_truth_instances": 6},
+    {"class_name": "QUEREZAS", "map50": 0.658446, "map50_95": 0.305694, "precision": 1.0, "recall": 0.5, "f1": 0.667, "ground_truth_instances": 6},
+    {"class_name": "ROEDORES", "map50": 0.467747, "map50_95": 0.264356, "precision": 0.286, "recall": 0.857, "f1": 0.429, "ground_truth_instances": 7},
+    {"class_name": "CHINCHE_DAGBERTUS_MINENSIS", "map50": null, "map50_95": null, "precision": null, "recall": null, "f1": null, "ground_truth_instances": 0}
+  ],
+  "per_class_validation": [
+    {"class_name": "OXIDIA", "map50": 0.994059, "precision": 1.0, "recall": 0.944, "f1": 0.971},
+    {"class_name": "BICHO_DEL_CESTO", "map50": 0.820391, "precision": 0.857, "recall": 0.75, "f1": 0.8},
+    {"class_name": "GRILLOS", "map50": 0.607439, "precision": 0.733, "recall": 0.688, "f1": 0.710},
+    {"class_name": "QUEREZAS", "map50": 0.547998, "precision": 1.0, "recall": 0.5, "f1": 0.667},
+    {"class_name": "ROEDORES", "map50": 0.781404, "precision": 0.833, "recall": 0.625, "f1": 0.714},
+    {"class_name": "CHINCHE_DAGBERTUS_MINENSIS", "map50": 0.762376, "precision": 0.8, "recall": 0.8, "f1": 0.8}
+  ],
+  "warnings": [
+    "CHINCHE_DAGBERTUS_MINENSIS: 0 anotaciones en Test; desempeño no evaluable en Test.",
+    "Solo 17 imágenes en Test: los indicadores pueden ser inestables y no equivalen a validación de campo.",
+    "Las 175 imágenes requieren revisión de independencia entre conjuntos y de origen real/sintético.",
+    "La confianza de la predicción no es una probabilidad calibrada de infestación ni un diagnóstico agronómico.",
+    "Las métricas de evaluación son un snapshot fijo del 31/10/2026."
+  ]
+}
