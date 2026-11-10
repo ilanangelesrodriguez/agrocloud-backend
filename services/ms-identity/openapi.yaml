@@ -13,37 +13,65 @@
   "paths": {
     "/health": {
       "get": {
-        "summary": "health",
+        "summary": "Estado del proceso",
         "operationId": "get_health",
         "responses": {
           "200": {
-            "description": "Success"
-          },
-          "422": {
-            "description": "Invalid input or business rule"
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "service"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok"
+                      ]
+                    },
+                    "service": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "ok",
+                  "service": "ms-identity"
+                }
+              }
+            }
           }
         },
-        "security": []
+        "security": [],
+        "tags": [
+          "Servicio"
+        ],
+        "description": "Comprueba que el proceso HTTP responde."
       }
     },
     "/ready": {
       "get": {
-        "summary": "ready",
+        "summary": "Disponibilidad para recibir solicitudes",
         "operationId": "get_ready",
         "responses": {
           "200": {
             "description": "Success"
-          },
-          "422": {
-            "description": "Invalid input or business rule"
           }
         },
-        "security": []
+        "security": [],
+        "tags": [
+          "Servicio"
+        ],
+        "description": "Comprueba las dependencias necesarias para atender solicitudes."
       }
     },
     "/auth/keys": {
       "get": {
-        "summary": "auth/keys",
+        "summary": "Consultar claves públicas de firma",
         "operationId": "get_auth_keys",
         "responses": {
           "200": {
@@ -53,12 +81,15 @@
             "description": "Invalid input or business rule"
           }
         },
-        "security": []
+        "security": [],
+        "tags": [
+          "Autenticación"
+        ]
       }
     },
     "/auth/login": {
       "post": {
-        "summary": "login",
+        "summary": "Iniciar sesión",
         "operationId": "post_auth_login",
         "responses": {
           "200": {
@@ -121,12 +152,15 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Autenticación"
+        ]
       }
     },
     "/auth/refresh": {
       "post": {
-        "summary": "refresh",
+        "summary": "Renovar la sesión",
         "operationId": "post_auth_refresh",
         "responses": {
           "200": {
@@ -184,12 +218,15 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Autenticación"
+        ]
       }
     },
     "/auth/forgot-password": {
       "post": {
-        "summary": "forgot-password",
+        "summary": "Solicitar recuperación de contraseña",
         "operationId": "post_auth_forgot-password",
         "responses": {
           "200": {
@@ -218,12 +255,15 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Autenticación"
+        ]
       }
     },
     "/auth/reset-password": {
       "post": {
-        "summary": "reset-password",
+        "summary": "Restablecer contraseña",
         "operationId": "post_auth_reset-password",
         "responses": {
           "200": {
@@ -268,12 +308,15 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Autenticación"
+        ]
       }
     },
     "/auth/activate": {
       "post": {
-        "summary": "activate",
+        "summary": "Activar una cuenta invitada",
         "operationId": "post_auth_activate",
         "responses": {
           "200": {
@@ -318,12 +361,15 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Autenticación"
+        ]
       }
     },
     "/auth/confirm-email": {
       "post": {
-        "summary": "confirm-email",
+        "summary": "Confirmar cambio de correo",
         "operationId": "post_auth_confirm-email",
         "responses": {
           "200": {
@@ -356,12 +402,15 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Autenticación"
+        ]
       }
     },
     "/auth/logout": {
       "post": {
-        "summary": "logout",
+        "summary": "Cerrar la sesión actual",
         "operationId": "post_auth_logout",
         "responses": {
           "200": {
@@ -375,12 +424,15 @@
           {
             "bearerAuth": []
           }
+        ],
+        "tags": [
+          "Autenticación"
         ]
       }
     },
     "/auth/logout-all": {
       "post": {
-        "summary": "logout-all",
+        "summary": "Cerrar todas las sesiones",
         "operationId": "post_auth_logout-all",
         "responses": {
           "200": {
@@ -394,12 +446,15 @@
           {
             "bearerAuth": []
           }
+        ],
+        "tags": [
+          "Autenticación"
         ]
       }
     },
     "/auth/me": {
       "get": {
-        "summary": "Current identity",
+        "summary": "Consultar el perfil autenticado",
         "operationId": "get_auth_me",
         "responses": {
           "200": {
@@ -413,12 +468,15 @@
           {
             "bearerAuth": []
           }
+        ],
+        "tags": [
+          "Autenticación"
         ]
       }
     },
     "/auth/change-email": {
       "post": {
-        "summary": "Request verified email change",
+        "summary": "Solicitar cambio de correo",
         "operationId": "post_auth_change-email",
         "responses": {
           "200": {
@@ -455,12 +513,15 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Autenticación"
+        ]
       }
     },
     "/companies": {
       "get": {
-        "summary": "Read authorized /companies",
+        "summary": "Consultar empresas",
         "operationId": "get_companies",
         "responses": {
           "200": {
@@ -474,10 +535,13 @@
           {
             "bearerAuth": []
           }
+        ],
+        "tags": [
+          "Empresas"
         ]
       },
       "post": {
-        "summary": "Create company (SUPERADMIN)",
+        "summary": "Registrar empresas",
         "operationId": "post_companies",
         "responses": {
           "201": {
@@ -534,12 +598,15 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Empresas"
+        ]
       }
     },
     "/companies/{company}": {
       "get": {
-        "summary": "Read authorized /companies/{company}",
+        "summary": "Consultar empresas",
         "operationId": "get_companies_company",
         "responses": {
           "200": {
@@ -564,10 +631,13 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Empresas"
         ]
       },
       "patch": {
-        "summary": "Update authorized company",
+        "summary": "Actualizar empresas",
         "operationId": "patch_companies_company",
         "responses": {
           "200": {
@@ -630,12 +700,15 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Empresas"
         ]
       }
     },
     "/users": {
       "get": {
-        "summary": "Read authorized /users",
+        "summary": "Consultar usuarios",
         "operationId": "get_users",
         "responses": {
           "200": {
@@ -649,10 +722,13 @@
           {
             "bearerAuth": []
           }
+        ],
+        "tags": [
+          "Usuarios"
         ]
       },
       "post": {
-        "summary": "Invite company user",
+        "summary": "Registrar usuarios",
         "operationId": "post_users",
         "responses": {
           "201": {
@@ -710,12 +786,15 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Usuarios"
+        ]
       }
     },
     "/users/{user}": {
       "get": {
-        "summary": "Read authorized /users/{user}",
+        "summary": "Consultar usuarios",
         "operationId": "get_users_user",
         "responses": {
           "200": {
@@ -740,10 +819,13 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Usuarios"
         ]
       },
       "patch": {
-        "summary": "Update authorized user",
+        "summary": "Actualizar usuarios",
         "operationId": "patch_users_user",
         "responses": {
           "200": {
@@ -807,12 +889,15 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Usuarios"
         ]
       }
     },
     "/roles": {
       "get": {
-        "summary": "Read authorized /roles",
+        "summary": "Consultar roles y permisos",
         "operationId": "get_roles",
         "responses": {
           "200": {
@@ -826,12 +911,15 @@
           {
             "bearerAuth": []
           }
+        ],
+        "tags": [
+          "Roles y permisos"
         ]
       }
     },
     "/permissions": {
       "get": {
-        "summary": "Read authorized /permissions",
+        "summary": "Consultar roles y permisos",
         "operationId": "get_permissions",
         "responses": {
           "200": {
@@ -845,12 +933,15 @@
           {
             "bearerAuth": []
           }
+        ],
+        "tags": [
+          "Roles y permisos"
         ]
       }
     },
     "/subscription": {
       "get": {
-        "summary": "Read authorized /subscription",
+        "summary": "Consultar suscripciones",
         "operationId": "get_subscription",
         "responses": {
           "200": {
@@ -864,12 +955,15 @@
           {
             "bearerAuth": []
           }
+        ],
+        "tags": [
+          "Suscripciones"
         ]
       }
     },
     "/access-requests": {
       "get": {
-        "summary": "Read authorized /access-requests",
+        "summary": "Consultar solicitudes de acceso",
         "operationId": "get_access-requests",
         "responses": {
           "200": {
@@ -883,10 +977,13 @@
           {
             "bearerAuth": []
           }
+        ],
+        "tags": [
+          "Solicitudes de acceso"
         ]
       },
       "post": {
-        "summary": "Request enterprise access",
+        "summary": "Registrar solicitudes de acceso",
         "operationId": "post_access-requests",
         "responses": {
           "201": {
@@ -948,12 +1045,15 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Solicitudes de acceso"
+        ]
       }
     },
     "/users/{user}/security": {
       "get": {
-        "summary": "Read authorized /users/{user}/security",
+        "summary": "Consultar usuarios",
         "operationId": "get_users_user_security",
         "responses": {
           "200": {
@@ -978,12 +1078,15 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Usuarios"
         ]
       }
     },
     "/users/{user}/invitation": {
       "post": {
-        "summary": "Reissue invitation",
+        "summary": "Enviar una invitación",
         "operationId": "post_users_user_invitation",
         "responses": {
           "200": {
@@ -1008,12 +1111,15 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Usuarios"
         ]
       }
     },
     "/access-requests/{accessRequest}/decision": {
       "post": {
-        "summary": "Review access request (SUPERADMIN)",
+        "summary": "Resolver una solicitud de acceso",
         "operationId": "post_access-requests_accessRequest_decision",
         "responses": {
           "200": {
@@ -1065,12 +1171,15 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Solicitudes de acceso"
         ]
       }
     },
     "/subscription/orders": {
       "post": {
-        "summary": "Create expected checkout order",
+        "summary": "Registrar suscripciones",
         "operationId": "post_subscription_orders",
         "responses": {
           "201": {
@@ -1102,12 +1211,15 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Suscripciones"
+        ]
       }
     },
     "/internal/auth/introspect": {
       "post": {
-        "summary": "Validate bearer session for a trusted service",
+        "summary": "Registrar introspect",
         "operationId": "post_internal_auth_introspect",
         "responses": {
           "200": {
@@ -1122,12 +1234,15 @@
             "serviceKey": [],
             "bearerAuth": []
           }
+        ],
+        "tags": [
+          "Operaciones internas"
         ]
       }
     },
     "/internal/companies/{company}/recipients": {
       "get": {
-        "summary": "Read authorized recipients",
+        "summary": "Consultar recipients",
         "operationId": "get_internal_companies_company_recipients",
         "responses": {
           "200": {
@@ -1160,12 +1275,15 @@
               "type": "string"
             }
           }
+        ],
+        "tags": [
+          "Operaciones internas"
         ]
       }
     },
     "/internal/companies/{company}/entitlements": {
       "get": {
-        "summary": "Read company entitlements",
+        "summary": "Consultar entitlements",
         "operationId": "get_internal_companies_company_entitlements",
         "responses": {
           "200": {
@@ -1190,12 +1308,15 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Operaciones internas"
         ]
       }
     },
     "/internal/companies/{company}/usage": {
       "post": {
-        "summary": "Consume quota idempotently",
+        "summary": "Registrar usage",
         "operationId": "post_internal_companies_company_usage",
         "responses": {
           "200": {
@@ -1251,12 +1372,15 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Operaciones internas"
         ]
       }
     },
     "/internal/billing/events": {
       "post": {
-        "summary": "Apply signed, expected payment idempotently",
+        "summary": "Recibir evento de events",
         "operationId": "post_internal_billing_events",
         "responses": {
           "200": {
@@ -1342,7 +1466,10 @@
             }
           }
         ],
-        "description": "Signature is sha256= plus HMAC-SHA256 of the exact raw JSON body. Event ID must equal payment.succeeded:<order_reference>. Unknown orders and mismatched totals never grant entitlements."
+        "description": "Signature is sha256= plus HMAC-SHA256 of the exact raw JSON body. Event ID must equal payment.succeeded:<order_reference>. Unknown orders and mismatched totals never grant entitlements.",
+        "tags": [
+          "Eventos internos"
+        ]
       }
     }
   },
@@ -1364,5 +1491,34 @@
         "name": "X-AgroCloud-Signature"
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "Servicio"
+    },
+    {
+      "name": "Autenticación"
+    },
+    {
+      "name": "Empresas"
+    },
+    {
+      "name": "Usuarios"
+    },
+    {
+      "name": "Roles y permisos"
+    },
+    {
+      "name": "Suscripciones"
+    },
+    {
+      "name": "Solicitudes de acceso"
+    },
+    {
+      "name": "Operaciones internas"
+    },
+    {
+      "name": "Eventos internos"
+    }
+  ]
 }

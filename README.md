@@ -60,7 +60,11 @@ Las aplicaciones se publican en 127.0.0.1. Health indica vida del proceso; readi
 
 La raíz `GET /` devuelve un catálogo JSON de los cinco microservicios con su descripción, prefijo, rutas de ejemplo y enlaces de salud. Identity, Agricultural, Notifications, Billing e IA tienen su propio índice al acceder directamente a su puerto.
 
-Identity y Agricultural sirven Swagger UI en `/docs` y el contrato en `/openapi.json` con `APP_ENV=local`. Notifications sirve las mismas rutas con `NODE_ENV=development`. Compose local configura esos entornos. Estas tres interfaces cargan Swagger UI desde jsDelivr y permiten consultar el contrato en modo lectura. Billing e IA mantienen su configuración de documentación.
+Identity y Agricultural sirven Swagger UI en `/docs` y el contrato en `/openapi.json` con `APP_ENV=local`. Notifications sirve las mismas rutas con `NODE_ENV=development`. Compose local configura esos entornos. Estas tres interfaces cargan Swagger UI desde jsDelivr y muestran las operaciones para clientes. Los contratos versionados conservan también las operaciones internas. Billing e IA mantienen su configuración de documentación y requieren sus claves de servicio en las rutas protegidas.
+
+Para habilitar **Try it out** en Compose local, poner en `true` la opción del servicio en el `.env` raíz (`IDENTITY_SWAGGER_TRY_IT_OUT`, `AGRICULTURAL_SWAGGER_TRY_IT_OUT` o `NOTIFICATIONS_SWAGGER_TRY_IT_OUT`) y recrear el contenedor correspondiente. Para ejecución directa, usar `SWAGGER_TRY_IT_OUT=true` en el entorno del servicio. Usar el botón **Authorize** con un token de desarrollo para las rutas que requieren Bearer. Mantener privados los puertos reenviados y las claves de servicio fuera del frontend.
+
+Compose lee el `.env` raíz y mapea sus variables a cada contenedor. Los `.env` de servicio corresponden a la ejecución independiente. Un cambio de entorno requiere recrear el contenedor afectado. Los cambios en los contratos, las plantillas de Swagger o el código requieren reconstruir su imagen. Las bases y sus migraciones son independientes de estos cambios.
 
 
 `/api/v1/{identity|agricultural|billing|notifications|ai}/...` reenvia a `/api/v1/...`. Para GET/HEAD de health y ready utiliza el prefijo real de cada servicio: Laravel `/api/v1`, Node/IA sin prefijo.

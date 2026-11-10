@@ -41,6 +41,7 @@ services:
       APP_NAME: AgroCloud-Identity
       APP_URL: http://localhost:${IDENTITY_PORT:-8001}
       APP_ENV: local
+      SWAGGER_TRY_IT_OUT: ${IDENTITY_SWAGGER_TRY_IT_OUT:-false}
       APP_DEBUG: "false"
       APP_KEY: ${IDENTITY_APP_KEY:?Set IDENTITY_APP_KEY}
       LOG_CHANNEL: stderr
@@ -103,6 +104,7 @@ services:
       APP_NAME: AgroCloud-Agricultural
       APP_URL: http://localhost:${AGRICULTURAL_PORT:-8002}
       APP_ENV: local
+      SWAGGER_TRY_IT_OUT: ${AGRICULTURAL_SWAGGER_TRY_IT_OUT:-false}
       APP_DEBUG: "false"
       APP_KEY: ${AGRICULTURAL_APP_KEY:?Set AGRICULTURAL_APP_KEY}
       LOG_CHANNEL: stderr
@@ -187,6 +189,7 @@ services:
       dockerfile: services/ms-notifications/Dockerfile
     environment: &notifications-env
       NODE_ENV: development
+      SWAGGER_TRY_IT_OUT: ${NOTIFICATIONS_SWAGGER_TRY_IT_OUT:-false}
       PORT: "3000"
       DATABASE_URL: postgresql://notifications_app:${NOTIFICATIONS_DB_PASSWORD:?Set NOTIFICATIONS_DB_PASSWORD}@postgres:5432/notifications_db
       IDENTITY_SERVICE_URL: http://ms-identity:8000

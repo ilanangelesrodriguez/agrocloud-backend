@@ -14,7 +14,7 @@
     "/": {
       "get": {
         "operationId": "get_",
-        "summary": "Descubrir la API de notificaciones",
+        "summary": "Descubrir la API",
         "responses": {
           "200": {
             "description": "Success",
@@ -146,13 +146,16 @@
             }
           }
         },
-        "security": []
+        "security": [],
+        "tags": [
+          "Servicio"
+        ]
       }
     },
     "/health": {
       "get": {
         "operationId": "get_health",
-        "summary": "GET /health",
+        "summary": "Estado del proceso",
         "responses": {
           "200": {
             "description": "Success",
@@ -164,163 +167,49 @@
                   "format": "uuid"
                 }
               }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "headers": {
-              "X-Request-Id": {
-                "description": "Request correlation identifier",
+            },
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials/signature",
-            "headers": {
-              "X-Request-Id": {
-                "description": "Request correlation identifier",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Account not eligible",
-            "headers": {
-              "X-Request-Id": {
-                "description": "Request correlation identifier",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Idempotency or state conflict",
-            "headers": {
-              "X-Request-Id": {
-                "description": "Request correlation identifier",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit",
-            "headers": {
-              "X-Request-Id": {
-                "description": "Request correlation identifier",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Required dependency unavailable",
-            "headers": {
-              "X-Request-Id": {
-                "description": "Request correlation identifier",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "headers": {
-              "X-Request-Id": {
-                "description": "Request correlation identifier",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "service"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok"
+                      ]
+                    },
+                    "service": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "ok",
+                  "service": "ms-notifications"
                 }
               }
             }
           }
         },
-        "security": []
+        "security": [],
+        "tags": [
+          "Servicio"
+        ],
+        "description": "Comprueba que el proceso HTTP responde."
       }
     },
     "/ready": {
       "get": {
         "operationId": "get_ready",
-        "summary": "GET /ready",
+        "summary": "Disponibilidad para recibir solicitudes",
         "responses": {
           "200": {
             "description": "Success",
-            "headers": {
-              "X-Request-Id": {
-                "description": "Request correlation identifier",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "headers": {
-              "X-Request-Id": {
-                "description": "Request correlation identifier",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials/signature",
-            "headers": {
-              "X-Request-Id": {
-                "description": "Request correlation identifier",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Account not eligible",
-            "headers": {
-              "X-Request-Id": {
-                "description": "Request correlation identifier",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Idempotency or state conflict",
-            "headers": {
-              "X-Request-Id": {
-                "description": "Request correlation identifier",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit",
             "headers": {
               "X-Request-Id": {
                 "description": "Request correlation identifier",
@@ -342,27 +231,19 @@
                 }
               }
             }
-          },
-          "500": {
-            "description": "Unexpected server error",
-            "headers": {
-              "X-Request-Id": {
-                "description": "Request correlation identifier",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
-            }
           }
         },
-        "security": []
+        "security": [],
+        "tags": [
+          "Servicio"
+        ],
+        "description": "Comprueba las dependencias necesarias para atender solicitudes."
       }
     },
     "/api/v1/notifications": {
       "get": {
         "operationId": "get_api_v1_notifications",
-        "summary": "GET /api/v1/notifications",
+        "summary": "Consultar bandeja",
         "responses": {
           "200": {
             "description": "Success",
@@ -493,13 +374,16 @@
               "default": false
             }
           }
+        ],
+        "tags": [
+          "Bandeja"
         ]
       }
     },
     "/api/v1/notifications/unread-count": {
       "get": {
         "operationId": "get_api_v1_notifications_unread-count",
-        "summary": "GET /api/v1/notifications/unread-count",
+        "summary": "Contar notificaciones sin leer",
         "responses": {
           "200": {
             "description": "Success",
@@ -509,6 +393,25 @@
                 "schema": {
                   "type": "string",
                   "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "unreadCount"
+                  ],
+                  "properties": {
+                    "unreadCount": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "example": {
+                  "unreadCount": 3
                 }
               }
             }
@@ -602,13 +505,16 @@
           {
             "bearerAuth": []
           }
+        ],
+        "tags": [
+          "Bandeja"
         ]
       }
     },
     "/api/v1/notifications/{id}/read": {
       "patch": {
         "operationId": "patch_api_v1_notifications_id_read",
-        "summary": "PATCH /api/v1/notifications/{id}/read",
+        "summary": "Marcar una notificación como leída",
         "responses": {
           "200": {
             "description": "Success",
@@ -721,13 +627,16 @@
               "type": "string"
             }
           }
+        ],
+        "tags": [
+          "Bandeja"
         ]
       }
     },
     "/api/v1/notifications/read-all": {
       "patch": {
         "operationId": "patch_api_v1_notifications_read-all",
-        "summary": "PATCH /api/v1/notifications/read-all",
+        "summary": "Marcar toda la bandeja como leída",
         "responses": {
           "200": {
             "description": "Success",
@@ -830,13 +739,16 @@
           {
             "bearerAuth": []
           }
+        ],
+        "tags": [
+          "Bandeja"
         ]
       }
     },
     "/api/v1/notification-preferences": {
       "get": {
         "operationId": "get_api_v1_notification-preferences",
-        "summary": "GET /api/v1/notification-preferences",
+        "summary": "Consultar preferencias",
         "responses": {
           "200": {
             "description": "Success",
@@ -939,11 +851,14 @@
           {
             "bearerAuth": []
           }
+        ],
+        "tags": [
+          "Preferencias"
         ]
       },
       "put": {
         "operationId": "put_api_v1_notification-preferences",
-        "summary": "PUT /api/v1/notification-preferences",
+        "summary": "Actualizar preferencias",
         "responses": {
           "200": {
             "description": "Success",
@@ -1080,13 +995,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Preferencias"
+        ]
       }
     },
     "/api/v1/internal/events/agricultural": {
       "post": {
         "operationId": "post_api_v1_internal_events_agricultural",
-        "summary": "POST /api/v1/internal/events/agricultural",
+        "summary": "Recibir evento de agricultural",
         "responses": {
           "202": {
             "description": "Success",
@@ -1210,13 +1128,16 @@
             }
           }
         ],
-        "description": "HMAC-SHA256 of the exact JSON body, prefix sha256=. Contract: contracts/agricultural.schema.json. A 202 means persisted, not fanout or email completed."
+        "description": "HMAC-SHA256 of the exact JSON body, prefix sha256=. Contract: contracts/agricultural.schema.json. A 202 means persisted, not fanout or email completed.",
+        "tags": [
+          "Eventos internos"
+        ]
       }
     },
     "/api/v1/internal/events/identity": {
       "post": {
         "operationId": "post_api_v1_internal_events_identity",
-        "summary": "POST /api/v1/internal/events/identity",
+        "summary": "Recibir evento de identity",
         "responses": {
           "202": {
             "description": "Success",
@@ -1340,13 +1261,16 @@
             }
           }
         ],
-        "description": "HMAC-SHA256 of the exact JSON body, prefix sha256=. Contract: contracts/identity.schema.json. A 202 means persisted, not fanout or email completed."
+        "description": "HMAC-SHA256 of the exact JSON body, prefix sha256=. Contract: contracts/identity.schema.json. A 202 means persisted, not fanout or email completed.",
+        "tags": [
+          "Eventos internos"
+        ]
       }
     },
     "/api/v1/internal/events/billing": {
       "post": {
         "operationId": "post_api_v1_internal_events_billing",
-        "summary": "POST /api/v1/internal/events/billing",
+        "summary": "Recibir evento de billing",
         "responses": {
           "202": {
             "description": "Success",
@@ -1470,13 +1394,16 @@
             }
           }
         ],
-        "description": "HMAC-SHA256 of the exact JSON body, prefix sha256=. Contract: contracts/billing.schema.json. A 202 means persisted, not fanout or email completed."
+        "description": "HMAC-SHA256 of the exact JSON body, prefix sha256=. Contract: contracts/billing.schema.json. A 202 means persisted, not fanout or email completed.",
+        "tags": [
+          "Eventos internos"
+        ]
       }
     },
     "/api/v1/internal/operations/status": {
       "get": {
         "operationId": "get_api_v1_internal_operations_status",
-        "summary": "GET /api/v1/internal/operations/status",
+        "summary": "Consultar status",
         "responses": {
           "200": {
             "description": "Success",
@@ -1579,13 +1506,16 @@
           {
             "operatorKey": []
           }
+        ],
+        "tags": [
+          "Operaciones internas"
         ]
       }
     },
     "/api/v1/internal/operations/events/{source}/{eventId}/retry": {
       "post": {
         "operationId": "post_api_v1_internal_operations_events_source_eventId_retry",
-        "summary": "POST /api/v1/internal/operations/events/{source}/{eventId}/retry",
+        "summary": "Volver a encolar un trabajo fallido",
         "responses": {
           "202": {
             "description": "Success",
@@ -1706,13 +1636,16 @@
               "type": "string"
             }
           }
+        ],
+        "tags": [
+          "Operaciones internas"
         ]
       }
     },
     "/api/v1/internal/operations/deliveries/{id}/retry": {
       "post": {
         "operationId": "post_api_v1_internal_operations_deliveries_id_retry",
-        "summary": "POST /api/v1/internal/operations/deliveries/{id}/retry",
+        "summary": "Volver a encolar un trabajo fallido",
         "responses": {
           "202": {
             "description": "Success",
@@ -1825,6 +1758,9 @@
               "type": "string"
             }
           }
+        ],
+        "tags": [
+          "Operaciones internas"
         ]
       }
     }
@@ -1860,5 +1796,22 @@
         "description": "Source-specific HMAC secret; never a client API key."
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "Servicio"
+    },
+    {
+      "name": "Bandeja"
+    },
+    {
+      "name": "Preferencias"
+    },
+    {
+      "name": "Eventos internos"
+    },
+    {
+      "name": "Operaciones internas"
+    }
+  ]
 }

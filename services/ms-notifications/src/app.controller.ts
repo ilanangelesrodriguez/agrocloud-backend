@@ -1,4 +1,4 @@
-import { fileURLToPath } from 'node:url';
+import { readFile } from 'node:fs/promises';
 import type { Response } from 'express';
 import { Controller, Get, NotFoundException, Res } from '@nestjs/common';
 import { AppService } from './app.service.js';
@@ -10,24 +10,51 @@ export class AppController {
     return { status: 'ok', service: 'ms-notifications' };
   }
   @Get('docs')
-  docs(@Res() response: Response): void {
-    this.sendDocumentation(response, '../docs.html', 'text/html');
+  async docs(@Res() response: Response): Promise<void> {
+    this.requireDevelopment();
+    const template = await readFile(
+      new URL('../docs.html', import.meta.url),
+      'utf8',
+    );
+    const methods =
+      process.env.SWAGGER_TRY_IT_OUT === 'true'
+        ? ['get', 'post', 'put', 'patch', 'delete']
+        : [];
+    response
+      .type('html')
+      .send(
+        template.replace('__SWAGGER_SUBMIT_METHODS__', JSON.stringify(methods)),
+      );
   }
 
   @Get('openapi.json')
-  openapi(@Res() response: Response): void {
-    this.sendDocumentation(response, '../openapi.yaml', 'application/json');
+  async openapi() {
+    this.requireDevelopment();
+    const contract = JSON.parse(
+      await readFile(new URL('../openapi.yaml', import.meta.url), 'utf8'),
+    ) as {
+      paths: Record<string, unknown>;
+      tags: { name: string }[];
+      components: { securitySchemes: Record<string, { type: string }> };
+    };
+    for (const path of Object.keys(contract.paths)) {
+      if (path.startsWith('/api/v1/internal/')) delete contract.paths[path];
+    }
+    contract.tags = contract.tags.filter(
+      ({ name }) =>
+        name !== 'Eventos internos' && name !== 'Operaciones internas',
+    );
+    for (const [name, scheme] of Object.entries(
+      contract.components.securitySchemes,
+    )) {
+      if (scheme.type === 'apiKey')
+        delete contract.components.securitySchemes[name];
+    }
+    return contract;
   }
 
-  private sendDocumentation(
-    response: Response,
-    path: string,
-    mediaType: string,
-  ): void {
+  private requireDevelopment(): void {
     if (process.env.NODE_ENV !== 'development') throw new NotFoundException();
-    response
-      .type(mediaType)
-      .sendFile(fileURLToPath(new URL(path, import.meta.url)));
   }
 
   @Get() index() {

@@ -14,61 +14,68 @@
     "/health": {
       "get": {
         "operationId": "get_health",
-        "summary": "GET /health",
+        "summary": "Estado del proceso",
         "security": [],
         "responses": {
           "200": {
-            "description": "Success"
-          },
-          "401": {
-            "description": "Invalid identity"
-          },
-          "403": {
-            "description": "Permission, role or quota denied"
-          },
-          "409": {
-            "description": "State or idempotency conflict"
-          },
-          "422": {
-            "description": "Invalid input or business rule"
-          },
-          "503": {
-            "description": "Required service unavailable"
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "service"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok"
+                      ]
+                    },
+                    "service": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "ok",
+                  "service": "ms-agricultural"
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "Servicio"
+        ],
+        "description": "Comprueba que el proceso HTTP responde."
       }
     },
     "/ready": {
       "get": {
         "operationId": "get_ready",
-        "summary": "GET /ready",
+        "summary": "Disponibilidad para recibir solicitudes",
         "security": [],
         "responses": {
           "200": {
             "description": "Success"
           },
-          "401": {
-            "description": "Invalid identity"
-          },
-          "403": {
-            "description": "Permission, role or quota denied"
-          },
-          "409": {
-            "description": "State or idempotency conflict"
-          },
-          "422": {
-            "description": "Invalid input or business rule"
-          },
           "503": {
             "description": "Required service unavailable"
           }
-        }
+        },
+        "tags": [
+          "Servicio"
+        ],
+        "description": "Comprueba las dependencias necesarias para atender solicitudes."
       }
     },
     "/producers": {
       "get": {
         "operationId": "get_producers",
-        "summary": "GET /producers",
+        "summary": "Consultar productores",
         "security": [
           {
             "bearerAuth": []
@@ -93,11 +100,14 @@
           "503": {
             "description": "Required service unavailable"
           }
-        }
+        },
+        "tags": [
+          "Productores"
+        ]
       },
       "post": {
         "operationId": "post_producers",
-        "summary": "POST /producers",
+        "summary": "Registrar productores",
         "security": [
           {
             "bearerAuth": []
@@ -166,13 +176,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Productores"
+        ]
       }
     },
     "/producers/{producer}": {
       "get": {
         "operationId": "get_producers_producer",
-        "summary": "GET /producers/{producer}",
+        "summary": "Consultar productores",
         "security": [
           {
             "bearerAuth": []
@@ -208,11 +221,14 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Productores"
         ]
       },
       "put": {
         "operationId": "put_producers_producer",
-        "summary": "PUT /producers/{producer}",
+        "summary": "Actualizar productores",
         "security": [
           {
             "bearerAuth": []
@@ -289,13 +305,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Productores"
+        ]
       }
     },
     "/lots": {
       "get": {
         "operationId": "get_lots",
-        "summary": "GET /lots",
+        "summary": "Consultar lotes",
         "security": [
           {
             "bearerAuth": []
@@ -320,11 +339,14 @@
           "503": {
             "description": "Required service unavailable"
           }
-        }
+        },
+        "tags": [
+          "Lotes"
+        ]
       },
       "post": {
         "operationId": "post_lots",
-        "summary": "POST /lots",
+        "summary": "Registrar lotes",
         "security": [
           {
             "bearerAuth": []
@@ -405,13 +427,16 @@
               "format": "uuid"
             }
           }
+        ],
+        "tags": [
+          "Lotes"
         ]
       }
     },
     "/lots/{lot}": {
       "get": {
         "operationId": "get_lots_lot",
-        "summary": "GET /lots/{lot}",
+        "summary": "Consultar lotes",
         "security": [
           {
             "bearerAuth": []
@@ -447,13 +472,16 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Lotes"
         ]
       }
     },
     "/lots/{lot}/cancel": {
       "post": {
         "operationId": "post_lots_lot_cancel",
-        "summary": "POST /lots/{lot}/cancel",
+        "summary": "Cancelar el recurso o trabajo indicado",
         "security": [
           {
             "bearerAuth": []
@@ -507,13 +535,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Lotes"
+        ]
       }
     },
     "/lots/{lot}/traceability": {
       "get": {
         "operationId": "get_lots_lot_traceability",
-        "summary": "GET /lots/{lot}/traceability",
+        "summary": "Consultar la trazabilidad del lote",
         "security": [
           {
             "bearerAuth": []
@@ -549,13 +580,16 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Lotes"
         ]
       }
     },
     "/lots/{lot}/reception": {
       "post": {
         "operationId": "post_lots_lot_reception",
-        "summary": "POST /lots/{lot}/reception",
+        "summary": "Registrar la recepción del lote",
         "security": [
           {
             "bearerAuth": []
@@ -635,13 +669,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Recepciones"
+        ]
       }
     },
     "/samplings": {
       "get": {
         "operationId": "get_samplings",
-        "summary": "GET /samplings",
+        "summary": "Consultar muestreos",
         "security": [
           {
             "bearerAuth": []
@@ -666,13 +703,16 @@
           "503": {
             "description": "Required service unavailable"
           }
-        }
+        },
+        "tags": [
+          "Muestreos"
+        ]
       }
     },
     "/lots/{lot}/samplings": {
       "post": {
         "operationId": "post_lots_lot_samplings",
-        "summary": "POST /lots/{lot}/samplings",
+        "summary": "Registrar muestreos",
         "security": [
           {
             "bearerAuth": []
@@ -769,13 +809,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Muestreos"
+        ]
       }
     },
     "/samplings/{sampling}": {
       "get": {
         "operationId": "get_samplings_sampling",
-        "summary": "GET /samplings/{sampling}",
+        "summary": "Consultar muestreos",
         "security": [
           {
             "bearerAuth": []
@@ -811,13 +854,16 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Muestreos"
         ]
       }
     },
     "/samplings/{sampling}/fruits": {
       "get": {
         "operationId": "get_samplings_sampling_fruits",
-        "summary": "GET /samplings/{sampling}/fruits",
+        "summary": "Consultar muestreos",
         "security": [
           {
             "bearerAuth": []
@@ -853,13 +899,16 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Muestreos"
         ]
       }
     },
     "/inspections": {
       "get": {
         "operationId": "get_inspections",
-        "summary": "GET /inspections",
+        "summary": "Consultar inspecciones",
         "security": [
           {
             "bearerAuth": []
@@ -884,13 +933,16 @@
           "503": {
             "description": "Required service unavailable"
           }
-        }
+        },
+        "tags": [
+          "Inspecciones"
+        ]
       }
     },
     "/inspections/{inspection}": {
       "get": {
         "operationId": "get_inspections_inspection",
-        "summary": "GET /inspections/{inspection}",
+        "summary": "Consultar inspecciones",
         "security": [
           {
             "bearerAuth": []
@@ -926,13 +978,16 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Inspecciones"
         ]
       }
     },
     "/samplings/{sampling}/inspections": {
       "post": {
         "operationId": "post_samplings_sampling_inspections",
-        "summary": "POST /samplings/{sampling}/inspections",
+        "summary": "Registrar inspecciones",
         "security": [
           {
             "bearerAuth": []
@@ -971,13 +1026,16 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Inspecciones"
         ]
       }
     },
     "/inspections/{inspection}/evidences": {
       "post": {
         "operationId": "post_inspections_inspection_evidences",
-        "summary": "POST /inspections/{inspection}/evidences",
+        "summary": "Registrar evidencias e ia",
         "security": [
           {
             "bearerAuth": []
@@ -1040,13 +1098,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Evidencias e IA"
+        ]
       }
     },
     "/evidences/{evidence}/image": {
       "get": {
         "operationId": "get_evidences_evidence_image",
-        "summary": "GET /evidences/{evidence}/image",
+        "summary": "Consultar la imagen de evidencia",
         "security": [
           {
             "bearerAuth": []
@@ -1102,13 +1163,16 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Evidencias e IA"
         ]
       }
     },
     "/evidences/{evidence}/analysis/cancel": {
       "post": {
         "operationId": "post_evidences_evidence_analysis_cancel",
-        "summary": "POST /evidences/{evidence}/analysis/cancel",
+        "summary": "Cancelar el recurso o trabajo indicado",
         "security": [
           {
             "bearerAuth": []
@@ -1162,13 +1226,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Evidencias e IA"
+        ]
       }
     },
     "/evidences/{evidence}/analyze": {
       "post": {
         "operationId": "post_evidences_evidence_analyze",
-        "summary": "POST /evidences/{evidence}/analyze",
+        "summary": "Encolar el análisis de una evidencia",
         "security": [
           {
             "bearerAuth": []
@@ -1204,13 +1271,16 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Evidencias e IA"
         ]
       }
     },
     "/evidences/{evidence}/detections/{index}": {
       "patch": {
         "operationId": "patch_evidences_evidence_detections_index",
-        "summary": "PATCH /evidences/{evidence}/detections/{index}",
+        "summary": "Actualizar evidencias e ia",
         "security": [
           {
             "bearerAuth": []
@@ -1276,13 +1346,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Evidencias e IA"
+        ]
       }
     },
     "/inspections/{inspection}/findings": {
       "post": {
         "operationId": "post_inspections_inspection_findings",
-        "summary": "POST /inspections/{inspection}/findings",
+        "summary": "Registrar inspecciones",
         "security": [
           {
             "bearerAuth": []
@@ -1359,13 +1432,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Inspecciones"
+        ]
       }
     },
     "/evidences/{evidence}/review": {
       "post": {
         "operationId": "post_evidences_evidence_review",
-        "summary": "POST /evidences/{evidence}/review",
+        "summary": "Registrar evidencias e ia",
         "security": [
           {
             "bearerAuth": []
@@ -1433,13 +1509,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Evidencias e IA"
+        ]
       }
     },
     "/evidences/{evidence}/discard": {
       "post": {
         "operationId": "post_evidences_evidence_discard",
-        "summary": "POST /evidences/{evidence}/discard",
+        "summary": "Registrar evidencias e ia",
         "security": [
           {
             "bearerAuth": []
@@ -1493,13 +1572,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Evidencias e IA"
+        ]
       }
     },
     "/inspections/{inspection}/validate": {
       "post": {
         "operationId": "post_inspections_inspection_validate",
-        "summary": "POST /inspections/{inspection}/validate",
+        "summary": "Validar una inspección y cerrar su captura",
         "security": [
           {
             "bearerAuth": []
@@ -1550,13 +1632,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Inspecciones"
+        ]
       }
     },
     "/inspections/{inspection}/decisions": {
       "post": {
         "operationId": "post_inspections_inspection_decisions",
-        "summary": "POST /inspections/{inspection}/decisions",
+        "summary": "Registrar calidad",
         "security": [
           {
             "bearerAuth": []
@@ -1651,13 +1736,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Calidad"
+        ]
       }
     },
     "/lots/{lot}/incidents": {
       "get": {
         "operationId": "get_lots_lot_incidents",
-        "summary": "GET /lots/{lot}/incidents",
+        "summary": "Consultar incidencias",
         "security": [
           {
             "bearerAuth": []
@@ -1693,11 +1781,14 @@
               "minimum": 1
             }
           }
+        ],
+        "tags": [
+          "Incidencias"
         ]
       },
       "post": {
         "operationId": "post_lots_lot_incidents",
-        "summary": "POST /lots/{lot}/incidents",
+        "summary": "Registrar incidencias",
         "security": [
           {
             "bearerAuth": []
@@ -1773,13 +1864,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Incidencias"
+        ]
       }
     },
     "/incidents/{incident}": {
       "patch": {
         "operationId": "patch_incidents_incident",
-        "summary": "PATCH /incidents/{incident}",
+        "summary": "Actualizar incidencias",
         "security": [
           {
             "bearerAuth": []
@@ -1850,13 +1944,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Incidencias"
+        ]
       }
     },
     "/catalogs": {
       "get": {
         "operationId": "get_catalogs",
-        "summary": "GET /catalogs",
+        "summary": "Consultar catálogos",
         "security": [
           {
             "bearerAuth": []
@@ -1900,11 +1997,14 @@
               ]
             }
           }
+        ],
+        "tags": [
+          "Catálogos"
         ]
       },
       "post": {
         "operationId": "post_catalogs",
-        "summary": "POST /catalogs",
+        "summary": "Registrar catálogos",
         "security": [
           {
             "bearerAuth": []
@@ -1958,13 +2058,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Catálogos"
+        ]
       }
     },
     "/catalogs/{catalog}": {
       "patch": {
         "operationId": "patch_catalogs_catalog",
-        "summary": "PATCH /catalogs/{catalog}",
+        "summary": "Actualizar catálogos",
         "security": [
           {
             "bearerAuth": []
@@ -2018,13 +2121,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Catálogos"
+        ]
       }
     },
     "/sampling-procedures": {
       "get": {
         "operationId": "get_sampling-procedures",
-        "summary": "GET /sampling-procedures",
+        "summary": "Consultar catálogos",
         "security": [
           {
             "bearerAuth": []
@@ -2049,11 +2155,14 @@
           "503": {
             "description": "Required service unavailable"
           }
-        }
+        },
+        "tags": [
+          "Catálogos"
+        ]
       },
       "post": {
         "operationId": "post_sampling-procedures",
-        "summary": "POST /sampling-procedures",
+        "summary": "Registrar catálogos",
         "security": [
           {
             "bearerAuth": []
@@ -2130,13 +2239,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Catálogos"
+        ]
       }
     },
     "/sampling-procedures/{procedure}": {
       "patch": {
         "operationId": "patch_sampling-procedures_procedure",
-        "summary": "PATCH /sampling-procedures/{procedure}",
+        "summary": "Actualizar catálogos",
         "security": [
           {
             "bearerAuth": []
@@ -2190,13 +2302,16 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Catálogos"
+        ]
       }
     },
     "/reports/summary": {
       "get": {
         "operationId": "get_reports_summary",
-        "summary": "GET /reports/summary",
+        "summary": "Consultar reportes",
         "security": [
           {
             "bearerAuth": []
@@ -2221,7 +2336,10 @@
           "503": {
             "description": "Required service unavailable"
           }
-        }
+        },
+        "tags": [
+          "Reportes"
+        ]
       }
     }
   },
@@ -2233,5 +2351,40 @@
         "bearerFormat": "JWT"
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "Servicio"
+    },
+    {
+      "name": "Productores"
+    },
+    {
+      "name": "Lotes"
+    },
+    {
+      "name": "Recepciones"
+    },
+    {
+      "name": "Muestreos"
+    },
+    {
+      "name": "Inspecciones"
+    },
+    {
+      "name": "Evidencias e IA"
+    },
+    {
+      "name": "Calidad"
+    },
+    {
+      "name": "Incidencias"
+    },
+    {
+      "name": "Catálogos"
+    },
+    {
+      "name": "Reportes"
+    }
+  ]
 }
