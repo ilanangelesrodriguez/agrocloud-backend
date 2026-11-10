@@ -1,0 +1,21 @@
+{
+  "name": "agrocloud-backend",
+  "version": "1.1.0",
+  "private": true,
+  "workspaces": [
+    "gateway",
+    "services/ms-billing",
+    "services/ms-notifications"
+  ],
+  "scripts": {
+    "dev:gateway": "npm run start:dev --workspace=@agrocloud/gateway",
+    "dev:billing": "npm run start:dev --workspace=@agrocloud/ms-billing",
+    "dev:notifications": "npm run start:dev --workspace=@agrocloud/ms-notifications",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
