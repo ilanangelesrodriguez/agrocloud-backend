@@ -51,3 +51,23 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+# PHP / Laravel
+vendor/
+.phpunit.cache/
+.phpunit.result.cache
+storage/logs/*
+!storage/logs/.gitignore
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Local Docker data
+.postgres-data/
+.mongo-data/
