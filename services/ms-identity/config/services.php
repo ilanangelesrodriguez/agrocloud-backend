@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'ruc' => [
+        'url' => env('SUNAT_RUC_URL', ''), 'key' => env('SUNAT_RUC_KEY', ''),
+        'ca_bundle' => env('SUNAT_RUC_CA_BUNDLE'), 'cache_seconds' => (int) env('SUNAT_RUC_CACHE_SECONDS', 86400),
+    ],
 
     /*
     |--------------------------------------------------------------------------
