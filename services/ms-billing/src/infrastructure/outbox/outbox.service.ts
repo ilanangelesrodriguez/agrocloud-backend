@@ -18,7 +18,11 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
-    if (process.env.VERCEL === '1') return;
+    if (process.env.VERCEL === '1' || !this.config.get<boolean>('OUTBOX_TIMER_ENABLED', true)) return;
+    if (!this.config.get<string>('AGROCLOUD_EVENT_URL')) {
+      this.logger.warn('AGROCLOUD_EVENT_URL vacío: los eventos permanecerán pendientes');
+      return;
+    }
     const delay = this.config.get<number>('OUTBOX_INTERVAL_MS', 30000);
     this.timer = setInterval(
       () =>

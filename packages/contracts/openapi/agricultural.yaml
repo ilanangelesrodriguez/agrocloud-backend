@@ -1,0 +1,48 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "AgroCloud agricultural",
+    "version": "0.1.0",
+    "description": "Contrato de estado implementado. Los endpoints de negocio de Billing e IA se describen en su OpenAPI generado; Identity, Agricultural y Notifications siguen en desarrollo."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8002"
+    }
+  ],
+  "paths": {
+    "/up": {
+      "get": {
+        "operationId": "agricultural_up",
+        "responses": {
+          "200": {
+            "description": "El proceso responde"
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "operationId": "agricultural_api_v1_health",
+        "responses": {
+          "200": {
+            "description": "El proceso responde"
+          }
+        }
+      }
+    },
+    "/api/v1/ready": {
+      "get": {
+        "operationId": "agricultural_api_v1_ready",
+        "responses": {
+          "200": {
+            "description": "Dependencias disponibles"
+          },
+          "503": {
+            "description": "Dependencias no disponibles"
+          }
+        }
+      }
+    }
+  }
+}

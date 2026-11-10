@@ -1,0 +1,38 @@
+name: Python and contracts static checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Parse Python source without compiling
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          for folder in ('services/ms-ai/src', 'services/ms-ai/alembic'):
+              for path in Path(folder).rglob('*.py'):
+                  ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
+          PY
+      - run: python -m pip install 'PyYAML>=6,<7' 'openapi-spec-validator>=0.7,<0.8' 'jsonschema>=4,<5'
+      - name: Validate contracts and Compose YAML
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import yaml
+          from jsonschema import Draft202012Validator
+          from openapi_spec_validator import validate_spec
+          yaml.safe_load(Path('compose.yaml').read_text())
+          for path in Path('packages/contracts/openapi').glob('*.yaml'):
+              validate_spec(yaml.safe_load(path.read_text()))
+          for path in Path('packages/contracts/events').glob('*.json'):
+              Draft202012Validator.check_schema(json.loads(path.read_text()))
+          PY

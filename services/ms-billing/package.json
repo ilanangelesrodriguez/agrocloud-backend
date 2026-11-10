@@ -1,5 +1,5 @@
 {
-  "name": "agrocloud-billing-api",
+  "name": "@agrocloud/ms-billing",
   "version": "0.1.0",
   "description": "Microservicio de pagos Culqi para las suscripciones de AgroCloud",
   "private": true,
@@ -8,9 +8,9 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start --env-file .env",
-    "start:dev": "nest start --watch --env-file .env",
-    "start:debug": "nest start --debug --watch --env-file .env",
+    "start": "node --env-file-if-exists=.env ../../node_modules/@nestjs/cli/bin/nest.js start",
+    "start:dev": "node --env-file-if-exists=.env ../../node_modules/@nestjs/cli/bin/nest.js start --watch",
+    "start:debug": "node --env-file-if-exists=.env ../../node_modules/@nestjs/cli/bin/nest.js start --debug --watch",
     "start:prod": "node dist/main.js",
     "lint": "oxlint --type-aware src/ test/",
     "test": "vitest run",

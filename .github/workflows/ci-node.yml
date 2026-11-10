@@ -1,0 +1,19 @@
+name: Node static checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Lint source without type compilation
+        run: npx --no-install oxlint gateway/src services/ms-billing/src services/ms-notifications/src
+      - run: git diff --exit-code -- package-lock.json

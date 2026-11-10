@@ -19,6 +19,7 @@ export const envSchema = Joi.object({
   CULQI_WEBHOOK_TOKEN: Joi.string().min(32).required(),
   AGROCLOUD_EVENT_URL: Joi.string().allow('').optional(),
   AGROCLOUD_EVENT_SECRET: Joi.string().min(32).required(),
+  OUTBOX_TIMER_ENABLED: Joi.boolean().default(true),
   OUTBOX_INTERVAL_MS: Joi.number().min(5000).default(30000),
 })
   .unknown(true)

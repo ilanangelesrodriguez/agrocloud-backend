@@ -44,7 +44,7 @@ class Settings(BaseSettings):
                 raise ValueError("Producción requiere PostgreSQL en DATABASE_URL")
             if self.auto_create_tables:
                 raise ValueError("En producción AUTO_CREATE_TABLES=false y ejecutar migraciones Alembic")
-        if not self.cloudinary_url or not self.cloudinary_cloud_name:
+        if self.app_env == "production" and (not self.cloudinary_url or not self.cloudinary_cloud_name):
             raise ValueError(
                 "Cloudinary es obligatorio: configura CLOUDINARY_URL "
                 "y CLOUDINARY_CLOUD_NAME"

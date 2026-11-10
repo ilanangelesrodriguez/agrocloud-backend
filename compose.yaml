@@ -1,0 +1,171 @@
+name: agrocloud
+
+x-node-health: &node-health
+  test: [CMD, node, -e, "fetch('http://127.0.0.1:' + process.env.PORT + '/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+  interval: 20s
+  timeout: 5s
+  start_period: 30s
+  retries: 5
+
+x-laravel: &laravel
+  environment: &laravel-env
+    APP_ENV: local
+    APP_DEBUG: "false"
+    LOG_CHANNEL: stderr
+    DB_CONNECTION: pgsql
+    DB_HOST: postgres
+    DB_PORT: "5432"
+    SESSION_DRIVER: array
+    CACHE_STORE: file
+    QUEUE_CONNECTION: database
+  depends_on:
+    postgres:
+      condition: service_healthy
+  healthcheck:
+    test: [CMD, php, -r, "exit(@file_get_contents('http://127.0.0.1:8000/up') === false ? 1 : 0);"]
+    interval: 20s
+    timeout: 5s
+    start_period: 30s
+    retries: 5
+
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/node.Dockerfile
+      args:
+        WORKSPACE: gateway
+    environment:
+      PORT: "4000"
+      IDENTITY_SERVICE_URL: http://ms-identity:8000
+      AGRICULTURAL_SERVICE_URL: http://ms-agricultural:8000
+      BILLING_SERVICE_URL: http://ms-billing:3000
+      NOTIFICATIONS_SERVICE_URL: http://ms-notifications:3000
+      AI_SERVICE_URL: http://ms-ai:8000
+    ports: ["127.0.0.1:${GATEWAY_PORT:-4000}:4000"]
+    healthcheck: *node-health
+
+  ms-identity:
+    <<: *laravel
+    build:
+      context: .
+      dockerfile: infrastructure/docker/laravel.Dockerfile
+      args:
+        SERVICE: services/ms-identity
+    environment:
+      <<: *laravel-env
+      APP_NAME: AgroCloud-Identity
+      APP_KEY: ${IDENTITY_APP_KEY:?Set IDENTITY_APP_KEY in .env}
+      APP_URL: http://localhost:${IDENTITY_PORT:-8001}
+      DB_DATABASE: identity_db
+      DB_USERNAME: identity_app
+      DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?Set IDENTITY_DB_PASSWORD}
+    ports: ["127.0.0.1:${IDENTITY_PORT:-8001}:8000"]
+
+  ms-agricultural:
+    <<: *laravel
+    build:
+      context: .
+      dockerfile: infrastructure/docker/laravel.Dockerfile
+      args:
+        SERVICE: services/ms-agricultural
+    environment:
+      <<: *laravel-env
+      APP_NAME: AgroCloud-Agricultural
+      APP_KEY: ${AGRICULTURAL_APP_KEY:?Set AGRICULTURAL_APP_KEY in .env}
+      APP_URL: http://localhost:${AGRICULTURAL_PORT:-8002}
+      DB_DATABASE: agricultural_db
+      DB_USERNAME: agricultural_app
+      DB_PASSWORD: ${AGRICULTURAL_DB_PASSWORD:?Set AGRICULTURAL_DB_PASSWORD}
+    ports: ["127.0.0.1:${AGRICULTURAL_PORT:-8002}:8000"]
+
+  ms-billing:
+    build: &billing-build
+      context: .
+      dockerfile: services/ms-billing/Dockerfile
+    environment: &billing-env
+      NODE_ENV: development
+      PORT: "3000"
+      MONGODB_URI: mongodb://mongo:27017/agrocloud_billing
+      SERVICE_API_KEY: ${BILLING_SERVICE_API_KEY:?Set BILLING_SERVICE_API_KEY}
+      CULQI_MODE: test
+      CULQI_SECRET_KEY: ${CULQI_SECRET_KEY:?Set CULQI_SECRET_KEY}
+      CULQI_PUBLIC_KEY: ${CULQI_PUBLIC_KEY:?Set CULQI_PUBLIC_KEY}
+      CULQI_WEBHOOK_TOKEN: ${CULQI_WEBHOOK_TOKEN:?Set CULQI_WEBHOOK_TOKEN}
+      AGROCLOUD_EVENT_URL: ${AGROCLOUD_EVENT_URL:-}
+      AGROCLOUD_EVENT_SECRET: ${AGROCLOUD_EVENT_SECRET:?Set AGROCLOUD_EVENT_SECRET}
+      OUTBOX_TIMER_ENABLED: ${BILLING_OUTBOX_TIMER_ENABLED:-true}
+    ports: ["127.0.0.1:${BILLING_PORT:-4001}:3000"]
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck: *node-health
+
+  billing-outbox-worker:
+    profiles: [events]
+    build: *billing-build
+    environment: *billing-env
+    command: [node, dist/worker.js]
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  ms-notifications:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/node.Dockerfile
+      args:
+        WORKSPACE: services/ms-notifications
+    environment:
+      PORT: "3000"
+    ports: ["127.0.0.1:${NOTIFICATIONS_PORT:-4002}:3000"]
+    healthcheck: *node-health
+
+  ms-ai:
+    build:
+      context: ./services/ms-ai
+    environment:
+      APP_ENV: development
+      PORT: "8000"
+      DATABASE_URL: postgresql+psycopg://ai_app:${AI_DB_PASSWORD:?Set AI_DB_PASSWORD}@postgres:5432/ai_db
+      AUTO_CREATE_TABLES: "false"
+      SERVICE_API_KEY: ${AI_SERVICE_API_KEY:?Set AI_SERVICE_API_KEY}
+      ROBOFLOW_API_KEY: ${ROBOFLOW_API_KEY:-}
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+    command: [sh, -c, "alembic upgrade head && exec uvicorn agrocloud_ai.main:app --host 0.0.0.0 --port 8000 --workers 1"]
+    ports: ["127.0.0.1:${AI_PORT:-8003}:8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: agrocloud_admin
+      POSTGRES_PASSWORD: ${POSTGRES_DEV_PASSWORD:?Set POSTGRES_DEV_PASSWORD}
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?Set IDENTITY_DB_PASSWORD}
+      AGRICULTURAL_DB_PASSWORD: ${AGRICULTURAL_DB_PASSWORD:?Set AGRICULTURAL_DB_PASSWORD}
+      NOTIFICATIONS_DB_PASSWORD: ${NOTIFICATIONS_DB_PASSWORD:?Set NOTIFICATIONS_DB_PASSWORD}
+      AI_DB_PASSWORD: ${AI_DB_PASSWORD:?Set AI_DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init.sh:/docker-entrypoint-initdb.d/10-services.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -h 127.0.0.1 -U agrocloud_admin -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mongo:
+    image: mongo:8
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --eval, "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
+  mongo-data:

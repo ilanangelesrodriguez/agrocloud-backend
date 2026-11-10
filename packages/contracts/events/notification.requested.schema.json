@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "notification.requested (propuesta, sin productor ni consumidor implementado)",
+  "description": "Borrador. Los IDs externos deben acordarse antes de implementar el consumidor.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "type",
+    "company_id",
+    "recipient_id",
+    "message"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "const": "notification.requested"
+    },
+    "company_id": {
+      "type": [
+        "integer",
+        "string"
+      ]
+    },
+    "recipient_id": {
+      "type": [
+        "integer",
+        "string"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

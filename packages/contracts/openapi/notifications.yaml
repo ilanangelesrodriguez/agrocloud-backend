@@ -1,0 +1,25 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "AgroCloud notifications",
+    "version": "0.1.0",
+    "description": "Contrato de estado implementado. Los endpoints de negocio de Billing e IA se describen en su OpenAPI generado; Identity, Agricultural y Notifications siguen en desarrollo."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4002"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "notifications_health",
+        "responses": {
+          "200": {
+            "description": "El proceso responde"
+          }
+        }
+      }
+    }
+  }
+}
