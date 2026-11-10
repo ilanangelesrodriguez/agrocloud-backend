@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agricultural domain event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "type",
+    "version",
+    "companyId",
+    "occurredAt",
+    "data"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "lot.created",
+        "lot.cancelled",
+        "lot.received",
+        "inspection.validated",
+        "quality.decision.issued",
+        "incident.opened",
+        "incident.updated",
+        "evidence.analysis_failed"
+      ]
+    },
+    "version": {
+      "const": 1
+    },
+    "companyId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data": {
+      "type": "object"
+    }
+  }
+}

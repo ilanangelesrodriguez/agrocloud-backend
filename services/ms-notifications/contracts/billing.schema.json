@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "payment.succeeded",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "type",
+    "order_reference",
+    "company_id",
+    "amount_cents",
+    "currency",
+    "kind"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "pattern": "^payment\\.succeeded:"
+    },
+    "type": {
+      "const": "payment.succeeded"
+    },
+    "order_reference": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "integer"
+    },
+    "amount_cents": {
+      "type": "integer"
+    },
+    "currency": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "provider_charge_id": {
+      "type": "string"
+    }
+  }
+}

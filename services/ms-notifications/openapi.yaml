@@ -1,0 +1,706 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "AgroCloud Notifications",
+    "version": "1.0.0",
+    "description": "Company-scoped inbox, preferences, signed events and mail deliveries. Runtime flow not verified in this delivery."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4002"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "get_",
+        "summary": "GET /",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": []
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "get_health",
+        "summary": "GET /health",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": []
+      }
+    },
+    "/ready": {
+      "get": {
+        "operationId": "get_ready",
+        "summary": "GET /ready",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "get_api_v1_notifications",
+        "summary": "GET /api/v1/notifications",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          },
+          {
+            "name": "unread",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "operationId": "get_api_v1_notifications_unread-count",
+        "summary": "GET /api/v1/notifications/unread-count",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "patch": {
+        "operationId": "patch_api_v1_notifications_id_read",
+        "summary": "PATCH /api/v1/notifications/{id}/read",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "patch": {
+        "operationId": "patch_api_v1_notifications_read-all",
+        "summary": "PATCH /api/v1/notifications/read-all",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notification-preferences": {
+      "get": {
+        "operationId": "get_api_v1_notification-preferences",
+        "summary": "GET /api/v1/notification-preferences",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "put_api_v1_notification-preferences",
+        "summary": "PUT /api/v1/notification-preferences",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "mutedKinds",
+                  "emailEnabled"
+                ],
+                "properties": {
+                  "mutedKinds": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "LOTE_REGISTRADO",
+                        "LOTE_RECIBIDO",
+                        "INSPECCION_ASIGNADA",
+                        "INSPECCION_VALIDADA",
+                        "DICTAMEN_APROBADO"
+                      ]
+                    }
+                  },
+                  "emailEnabled": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/internal/events/agricultural": {
+      "post": {
+        "operationId": "post_api_v1_internal_events_agricultural",
+        "summary": "POST /api/v1/internal/events/agricultural",
+        "responses": {
+          "202": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "agriculturalSignature": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Event-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "HMAC-SHA256 of the exact JSON body, prefix sha256=. Contract: contracts/agricultural.schema.json. A 202 means persisted, not fanout or email completed."
+      }
+    },
+    "/api/v1/internal/events/identity": {
+      "post": {
+        "operationId": "post_api_v1_internal_events_identity",
+        "summary": "POST /api/v1/internal/events/identity",
+        "responses": {
+          "202": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "identitySignature": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Event-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "HMAC-SHA256 of the exact JSON body, prefix sha256=. Contract: contracts/identity.schema.json. A 202 means persisted, not fanout or email completed."
+      }
+    },
+    "/api/v1/internal/events/billing": {
+      "post": {
+        "operationId": "post_api_v1_internal_events_billing",
+        "summary": "POST /api/v1/internal/events/billing",
+        "responses": {
+          "202": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "billingSignature": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Event-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "HMAC-SHA256 of the exact JSON body, prefix sha256=. Contract: contracts/billing.schema.json. A 202 means persisted, not fanout or email completed."
+      }
+    },
+    "/api/v1/internal/operations/status": {
+      "get": {
+        "operationId": "get_api_v1_internal_operations_status",
+        "summary": "GET /api/v1/internal/operations/status",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "operatorKey": []
+          }
+        ]
+      }
+    },
+    "/api/v1/internal/operations/events/{source}/{eventId}/retry": {
+      "post": {
+        "operationId": "post_api_v1_internal_operations_events_source_eventId_retry",
+        "summary": "POST /api/v1/internal/operations/events/{source}/{eventId}/retry",
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "operatorKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "source",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/internal/operations/deliveries/{id}/retry": {
+      "post": {
+        "operationId": "post_api_v1_internal_operations_deliveries_id_retry",
+        "summary": "POST /api/v1/internal/operations/deliveries/{id}/retry",
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials/signature"
+          },
+          "403": {
+            "description": "Account not eligible"
+          },
+          "409": {
+            "description": "Idempotency or state conflict"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        },
+        "security": [
+          {
+            "operatorKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "operatorKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Notifications-Operator-Key"
+      },
+      "agriculturalSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-AgroCloud-Signature",
+        "description": "Source-specific HMAC secret; never a client API key."
+      },
+      "identitySignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-AgroCloud-Signature",
+        "description": "Source-specific HMAC secret; never a client API key."
+      },
+      "billingSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-AgroCloud-Signature",
+        "description": "Source-specific HMAC secret; never a client API key."
+      }
+    }
+  }
+}

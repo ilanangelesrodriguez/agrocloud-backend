@@ -1,0 +1,33 @@
+# From repository root: -f compose.yaml -f services/ms-notifications/compose.notifications.yaml
+services:
+  ms-notifications:
+    build: &notifications-build
+      context: .
+      dockerfile: services/ms-notifications/Dockerfile
+    environment: &notifications-env
+      NODE_ENV: development
+      PORT: "3000"
+      DATABASE_URL: postgresql://notifications_app:${NOTIFICATIONS_DB_PASSWORD:?Set NOTIFICATIONS_DB_PASSWORD}@postgres:5432/notifications_db
+      IDENTITY_SERVICE_URL: http://ms-identity:8000
+      IDENTITY_SERVICE_API_KEY: ${IDENTITY_SERVICE_API_KEY:?Set IDENTITY_SERVICE_API_KEY}
+      AGRICULTURAL_EVENT_SECRET: ${AGRICULTURAL_EVENT_SECRET:-}
+      IDENTITY_EVENT_SECRET: ${IDENTITY_EVENT_SECRET:-}
+      BILLING_EVENT_SECRET: ${BILLING_EVENT_SECRET:-}
+      NOTIFICATIONS_OPERATOR_KEY: ${NOTIFICATIONS_OPERATOR_KEY:-}
+      FRONTEND_URL: ${NOTIFICATIONS_FRONTEND_URL:-http://localhost:3000}
+      MAIL_ENABLED: ${NOTIFICATIONS_MAIL_ENABLED:-false}
+      SMTP_URL: ${NOTIFICATIONS_SMTP_URL:-}
+      MAIL_FROM: ${NOTIFICATIONS_MAIL_FROM:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  notifications-worker:
+    profiles: [notifications-worker]
+    build: *notifications-build
+    environment: *notifications-env
+    command: [node, dist/worker.js]
+    stop_grace_period: 180s
+    depends_on:
+      postgres:
+        condition: service_healthy

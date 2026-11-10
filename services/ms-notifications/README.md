@@ -1,132 +1,80 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# ms-notifications
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API NestJS 12 / PostgreSQL para bandeja empresarial, preferencias, eventos y entregas. Completa la base parcial de TypeORM y correo que ya estaba presente. El monolito `C:\Users\ILAN\Downloads\Nube\agrocloud` se uso como referencia; no se modifico ni se importaron sus datos. No se crean usuarios ni empresas locales.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Persistencia y limites del servicio
 
-## Description
+Se mantiene TypeORM como unica capa de conexion y migraciones, sin synchronize ni migraciones automaticas al arrancar. La migracion inicial crea notifications, notification_preferences, notification_deliveries y processed_events; notification_rate_limits soporta limites compartidos entre instancias. recipient_id y company_id son referencias externas sin FK a Identity. Las entregas si tienen una FK local a la notificacion.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Los avisos guardan IDs, contenido y permiso de elegibilidad; no se copia el directorio de usuarios ni se conserva su correo para entregas futuras. El worker consulta el correo vigente de Identity antes de cada envio.
 
-## Project setup
+## Autenticacion, bandeja y preferencias
 
-```bash
-$ npm install
-```
+Las rutas de usuario exigen Authorization: Bearer e introspeccion en Identity con X-Service-Key. Se comprueba cuenta activa, activacion completada y empresa positiva. Una caida de Identity no concede acceso. La bandeja es empresarial: los avisos de plataforma sin empresa requieren un contrato adicional; no se convierte companyId=0 en una empresa valida.
 
-## Compile and run the project
+Todas las consultas y actualizaciones de bandeja usan el usuario y la empresa autenticados. No se admiten recipient_id/company_id elegidos desde React. Los avisos operativos y de Billing tambien requieren conservar el permiso de elegibilidad; los avisos personales de seguridad siguen accesibles al propietario activo. Leer un UUID ajeno devuelve 404. Las preferencias solo modifican la cuenta propia.
 
-```bash
-# development
-$ npm run start
+| Endpoint | Funcion |
+| --- | --- |
+| GET /health | Liveness del proceso |
+| GET /ready | Conexion y tablas principales; no consulta SMTP o Identity |
+| GET /api/v1/notifications | Bandeja con limit (1..100), cursor y unread=true/false |
+| GET /api/v1/notifications/unread-count | Contador propio |
+| PATCH /api/v1/notifications/{id}/read | Lectura idempotente de un aviso propio |
+| PATCH /api/v1/notifications/read-all | Marcar la bandeja visible como leida |
+| GET /api/v1/notification-preferences | Preferencias y lista de tipos opcionales |
+| PUT /api/v1/notification-preferences | Reemplazar mutedKinds y emailEnabled |
 
-# watch mode
-$ npm run start:dev
+Con el Gateway actual, la bandeja interna /api/v1/notifications se consume como /api/v1/notifications/notifications, y las preferencias como /api/v1/notifications/notification-preferences. El primer notifications identifica el servicio y el segundo la ruta interna. No se modifico el enrutamiento compartido.
 
-# production mode
-$ npm run start:prod
-```
+Se conserva GET / del esqueleto por compatibilidad. OpenAPI esta en openapi.yaml. El frontend puede hacer polling de la primera pagina y el contador; no se implementaron WebSocket/SSE.
 
-## Run tests
+PUT de preferencias recibe un objeto completo, por ejemplo `{"mutedKinds":["LOTE_RECIBIDO"],"emailEnabled":false}`. Solo admite los tipos opcionales del monolito: LOTE_REGISTRADO, LOTE_RECIBIDO, INSPECCION_ASIGNADA, INSPECCION_VALIDADA y DICTAMEN_APROBADO. El silenciamiento aplica a avisos de prioridad normal; no suprime avisos altos/criticos. Los avisos de categoria security fuerzan bandeja y cola de correo, independientemente de las preferencias. Desactivar MAIL_ENABLED conserva las entregas pendientes, no simula su envio.
 
-```bash
-# unit tests
-$ npm run test
+## Recepcion firmada y procesamiento persistente
 
-# e2e tests
-$ npm run test:e2e
+| Endpoint interno | Contrato / clave |
+| --- | --- |
+| POST /api/v1/internal/events/agricultural | Eventos de Agricultural v1; AGRICULTURAL_EVENT_SECRET |
+| POST /api/v1/internal/events/identity | account.security_notice v1; IDENTITY_EVENT_SECRET |
+| POST /api/v1/internal/events/billing | payment.succeeded actual; BILLING_EVENT_SECRET |
 
-# test coverage
-$ npm run test:cov
-```
+Cada fuente usa su secreto de 32+ caracteres. Vacio desactiva esa fuente. Se exige X-Event-Id y X-AgroCloud-Signature (`sha256=` + HMAC SHA-256 del cuerpo JSON original, sin reserializarlo). Se limita JSON a 64 KiB. No se acepta un destino, titulo, mensaje, permiso arbitrario o credencial de recuperacion enviado desde React.
 
-## Deployment
+Un 202 significa que el evento esta persistido. La clave de deduplicacion es (source,event_id). Repetir el cuerpo exacto devuelve duplicate=true; reutilizar ID con otro cuerpo devuelve 409. El fanout se procesa despues, consulta destinatarios activos y autorizados en Identity, aplica preferencias y crea avisos y entregas en una transaccion con la finalizacion del evento. El limite MAX_EVENT_RECIPIENTS falla el trabajo completo: no se trunca silenciosamente una lista.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+La politica de cada evento define permisos de destinatarios en el servidor. Las sugerencias recipientPermissions del productor no pueden ampliar esa politica. Los recipientIds explicitos se intersectan con usuarios autorizados de la empresa. Se usa el contrato disponible de Identity basado en permisos; no se copian ni se consultan sus tablas para reproducir un directorio de roles.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Agricultural ya publica lot.created, lot.cancelled, lot.received, inspection.validated, quality.decision.issued, incident.opened, incident.updated y evidence.analysis_failed. Configurar en su entorno NOTIFICATIONS_EVENT_URL=http://ms-notifications:3000/api/v1/internal/events/agricultural y el mismo AGRICULTURAL_EVENT_SECRET. Este trabajo no modifica el entorno ni el codigo de Agricultural; activar la configuracion corresponde a la puesta en marcha.
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+Identity y Billing tienen receptores preparados, pero necesitan productores o fanout confiable. Identity actualmente envia invitaciones, recuperaciones y cambios de correo desde su propio servicio: los tokens permanecen alli. El contrato adicional account.security_notice recibe solo recipientIds y un code permitido, sin enlaces secretos ni texto libre. Billing tiene actualmente un destino de outbox hacia Identity: no sustituirlo por Notifications, porque Identity debe procesar la suscripcion. Para avisar tambien a Notifications se necesita fanout o un evento posterior desde Identity.
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Los contratos locales estan en contracts/. Los destinos de navegacion son rutas relativas elegidas por el servidor (/lotes/{id}, /suscripcion, /notificaciones). El frontend debe implementar o mapear esas rutas; el API no redirige a URLs suministradas por clientes.
 
-## Observability
+## Worker y correo
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+`npm run start:worker -w @agrocloud/ms-notifications` ejecuta el worker compilado; necesita dist/worker.js ya preparado. El API no ejecuta tareas ni envia correos al recibir HTTP. El worker procesa eventos y entregas con FOR UPDATE SKIP LOCKED, leases y token de propietario; se puede ejecutar en varias instancias. Los leases expirados se recuperan incluso tras una caida en el ultimo intento.
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+Hay hasta ocho intentos con espera creciente; los fallos terminales quedan FAILED. Los avisos a destinatarios que ya no estan activos, cambiaron de empresa/permisos o dejaron de aceptar el canal se cancelan antes del envio. Los errores transitorios de Identity conservan el trabajo para reintentar.
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+MAIL_ENABLED=false procesa la bandeja y retiene las entregas. Con true se requiere SMTP_URL y MAIL_FROM. Se usa @nestjs/mail y SMTP, TLS obligatorio en produccion, timeout de envio y texto plano sin HTML de productores. El ID de entrega se usa como clave idempotente/Message-ID estable. SMTP no garantiza exactamente una entrega: si el proveedor acepta y se pierde la respuesta, un reintento puede producir un duplicado. PROVIDER_ACCEPTED significa aceptacion por el servidor, no recepcion final en la bandeja del usuario.
 
-To add it to this project, run this and approve the code it prints at [observe.nestjs.com/link](https://observe.nestjs.com/link) - signing up for free if you have no account:
+## Operacion interna
 
-```bash
-$ npx @nestjs/observe link
-```
+X-Notifications-Operator-Key, separado de los JWT y secretos de productores, protege:
 
-It installs `@nestjs/observe`, wires it into `AppModule` and `main.ts`, and writes the app key and secret into `.env`, which every `nest start` script (`start`, `start:dev`, `start:debug`) then loads. In production, set `OBSERVE_APP_KEY` and `OBSERVE_APP_SECRET` in the environment instead.
+- GET /api/v1/internal/operations/status: conteos por estado, sin cuerpos o direcciones de correo.
+- POST /api/v1/internal/operations/events/{source}/{eventId}/retry: reactivar solo un evento FAILED y desbloqueado.
+- POST /api/v1/internal/operations/deliveries/{id}/retry: reactivar solo una entrega FAILED y desbloqueada.
 
-Or do it by hand:
+No se reenvian entregas PROVIDER_ACCEPTED desde esos endpoints. El Gateway existente bloquea rutas internal; mantenerlas privadas en cualquier despliegue. Los codigos de error persistidos son genericos para evitar guardar credenciales o cuerpos en logs. El worker limpia las ventanas antiguas del rate limiter; no borra la bandeja ni los registros de entrega.
 
-```bash
-$ npm install @nestjs/observe
-```
+## Preparacion y validacion
 
-Then follow the [setup guide](https://docs.nestjs.com/observability/sdk) - it takes a single import and an app key.
+1. Completar .env con PostgreSQL propio y las credenciales de Identity. Para ejecucion manual usar hosts/puertos locales; para Compose usar DNS de contenedores. En DATABASE_URL escapar las credenciales. El overlay espera contrasenas alfanumericas porque interpola la URL.
+2. Instalar dependencias Node desde la raiz del monorepo con su lockfile. No crear un lockfile anidado.
+3. Revisar la migracion y ejecutarla explicitamente con `npm run migrate -w @agrocloud/ms-notifications`. El script usa una conexion dedicada para su bloqueo de migracion y transaccion para los cambios. El rollback automatico se rechaza para conservar la bandeja y el historial; requiere una migracion revisada. No ejecutar este esquema sobre la base del monolito.
+4. Configurar y ejecutar API y worker. La puesta en marcha debe preparar primero los artefactos dist; no se generaron en esta entrega. Para Docker, combinar desde la raiz `-f compose.yaml -f services/ms-notifications/compose.notifications.yaml` y habilitar el perfil notifications-worker. El Dockerfile incluye scripts y SQL para poder ejecutar la migracion explicita. El arranque del contenedor no aplica DDL.
+5. El overlay solo extiende Notifications. Usa las variables del entorno de Compose o .env raiz, no lee automaticamente el .env del servicio. Sus variables de correo son NOTIFICATIONS_MAIL_ENABLED, NOTIFICATIONS_SMTP_URL y NOTIFICATIONS_MAIL_FROM; para frontend usa NOTIFICATIONS_FRONTEND_URL. NODE_ENV=development permite HTTP entre contenedores locales; produccion exige HTTPS para Identity/frontend y configuracion SMTP segura.
 
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Se conservaron las dependencias y cambios parciales existentes, incluido el lockfile raiz previo. No se ejecutaron tests, compilaciones, migraciones, workers, contenedores ni envios de correo. La revision realizada es estatica: formato, lint sin comprobacion de tipos, sintaxis de scripts y contratos. El flujo integrado y las migraciones requieren verificacion posterior con los servicios configurados.

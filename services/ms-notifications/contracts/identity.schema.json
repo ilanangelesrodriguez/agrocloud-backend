@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Identity security notice v1 (producer pending)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "type",
+    "version",
+    "companyId",
+    "occurredAt",
+    "data"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "type": {
+      "const": "account.security_notice"
+    },
+    "version": {
+      "const": 1
+    },
+    "companyId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recipientIds",
+        "code"
+      ],
+      "properties": {
+        "recipientIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "code": {
+          "enum": [
+            "SECURITY_NOTICE",
+            "USER_ACCESS_CHANGED",
+            "SUBSCRIPTION_UPDATED"
+          ]
+        }
+      }
+    }
+  }
+}

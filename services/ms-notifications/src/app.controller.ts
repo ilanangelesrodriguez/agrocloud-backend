@@ -4,14 +4,10 @@ import { AppService } from './app.service.js';
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
-
-  @Get('health')
-  health() {
+  @Get('health') health() {
     return { status: 'ok', service: 'ms-notifications' };
   }
-
-  @Get()
-  getHello(): string {
+  @Get() getHello(): string {
     return this.appService.getHello();
   }
 }
