@@ -7,14 +7,14 @@
   },
   "servers": [
     {
-      "url": "http://localhost:4002"
+      "url": "/"
     }
   ],
   "paths": {
     "/": {
       "get": {
         "operationId": "get_",
-        "summary": "GET /",
+        "summary": "Descubrir la API de notificaciones",
         "responses": {
           "200": {
             "description": "Success",
@@ -24,6 +24,39 @@
                 "schema": {
                   "type": "string",
                   "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "service",
+                    "apiVersion",
+                    "description",
+                    "links"
+                  ],
+                  "properties": {
+                    "service": {
+                      "type": "string",
+                      "example": "ms-notifications"
+                    },
+                    "apiVersion": {
+                      "type": "string",
+                      "example": "v1"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "links": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    }
+                  }
                 }
               }
             }

@@ -5,7 +5,11 @@ export function requestId(response: Response): string {
   const existing: unknown = response.locals.requestId;
   if (typeof existing === 'string') return existing;
 
-  const id = randomUUID();
+  const incoming = response.req?.get('X-Request-Id');
+  const id =
+    incoming && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(incoming)
+      ? incoming
+      : randomUUID();
   response.locals.requestId = id;
   response.setHeader('X-Request-Id', id);
   return id;

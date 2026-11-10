@@ -18,6 +18,7 @@ COPY --from=build --chown=node:node /app/services/ms-notifications/package.json 
 COPY --from=build --chown=node:node /app/services/ms-notifications/dist ./services/ms-notifications/dist
 COPY --from=build --chown=node:node /app/services/ms-notifications/scripts ./services/ms-notifications/scripts
 COPY --from=build --chown=node:node /app/services/ms-notifications/migrations ./services/ms-notifications/migrations
+COPY --from=build --chown=node:node /app/services/ms-notifications/docs.html /app/services/ms-notifications/openapi.yaml ./services/ms-notifications/
 WORKDIR /app/services/ms-notifications
 USER node
 EXPOSE 3000

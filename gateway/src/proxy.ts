@@ -25,6 +25,21 @@ function endToEnd(headers: IncomingHttpHeaders): IncomingHttpHeaders {
   return result;
 }
 
+function proxyError(
+  response: Response,
+  statusCode: number,
+  code: string,
+  message: string,
+) {
+  response.status(statusCode).setHeader('Cache-Control', 'no-store');
+  response.json({
+    success: false,
+    statusCode,
+    error: { code, message },
+    meta: { requestId: response.getHeader('X-Request-Id') },
+  });
+}
+
 // Fixed routes only; credentials remain the caller's responsibility.
 export function configureProxy(app: NestExpressApplication): void {
   const routes = [
@@ -53,7 +68,7 @@ export function configureProxy(app: NestExpressApplication): void {
       try {
         decoded = decodeURIComponent(path);
       } catch {
-        res.status(400).json({ error: 'Invalid path' });
+        proxyError(res, 400, 'BAD_REQUEST', 'Invalid path');
         return;
       }
       const segments = decoded.split('/').filter(Boolean);
@@ -67,7 +82,7 @@ export function configureProxy(app: NestExpressApplication): void {
         segments.some((segment) => segment === '.' || segment === '..') ||
         segments[0]?.toLowerCase() === 'internal'
       ) {
-        res.status(404).json({ error: 'Not found' });
+        proxyError(res, 404, 'RESOURCE_NOT_FOUND', 'Not found');
         return;
       }
       const normalized = '/' + segments.join('/');
@@ -140,13 +155,13 @@ export function configureProxy(app: NestExpressApplication): void {
       );
       const deadline = setTimeout(() => {
         if (!res.headersSent)
-          res.status(504).json({ error: 'Upstream timeout' });
+          proxyError(res, 504, 'DEPENDENCY_TIMEOUT', 'Upstream timeout');
         else res.destroy();
         upstream.destroy();
       }, 120_000);
       upstream.on('error', () => {
         if (!res.headersSent && !res.destroyed)
-          res.status(502).json({ error: 'Service unavailable' });
+          proxyError(res, 502, 'DEPENDENCY_UNAVAILABLE', 'Service unavailable');
         else res.destroy();
       });
       res.on('close', () => {

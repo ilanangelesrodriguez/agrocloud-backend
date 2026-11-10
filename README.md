@@ -58,6 +58,11 @@ Las aplicaciones se publican en 127.0.0.1. Health indica vida del proceso; readi
 
 ## Gateway
 
+La raíz `GET /` devuelve un catálogo JSON de los cinco microservicios con su descripción, prefijo, rutas de ejemplo y enlaces de salud. Identity, Agricultural, Notifications, Billing e IA tienen su propio índice al acceder directamente a su puerto.
+
+Identity y Agricultural sirven Swagger UI en `/docs` y el contrato en `/openapi.json` con `APP_ENV=local`. Notifications sirve las mismas rutas con `NODE_ENV=development`. Compose local configura esos entornos. Estas tres interfaces cargan Swagger UI desde jsDelivr y permiten consultar el contrato en modo lectura. Billing e IA mantienen su configuración de documentación.
+
+
 `/api/v1/{identity|agricultural|billing|notifications|ai}/...` reenvia a `/api/v1/...`. Para GET/HEAD de health y ready utiliza el prefijo real de cada servicio: Laravel `/api/v1`, Node/IA sin prefijo.
 
 La bandeja usa `/api/v1/notifications`, `/api/v1/notifications/unread-count`, `/api/v1/notifications/read-all` y `/api/v1/notifications/{id}/read`. Las preferencias usan `/api/v1/notifications/preferences`. Las rutas anteriores con doble notifications y notification-preferences siguen disponibles.

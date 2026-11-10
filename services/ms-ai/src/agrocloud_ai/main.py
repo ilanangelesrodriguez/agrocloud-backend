@@ -2,7 +2,9 @@
 import asyncio
 from contextlib import asynccontextmanager
 from fastapi import Depends,FastAPI
-from fastapi.responses import RedirectResponse
+from uuid import UUID, uuid4
+
+from fastapi import Request
 from agrocloud_ai import __version__
 from agrocloud_ai.api.routes import health, models, analyses, inferences, statistics
 from agrocloud_ai.core.security import require_service_key
@@ -28,6 +30,31 @@ app.include_router(health.router)
 for route in (models.router, analyses.router, inferences.router, statistics.router):
     app.include_router(route,prefix="/api/v1",dependencies=[Depends(require_service_key)])
 
-@app.get("/",include_in_schema=False)
+@app.middleware("http")
+async def correlate_request(request: Request, call_next):
+    incoming = request.headers.get("X-Request-Id", "")
+    try:
+        parsed = UUID(incoming)
+        request_id = incoming if str(parsed) == incoming.lower() else str(uuid4())
+    except ValueError:
+        request_id = str(uuid4())
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-Id"] = request_id
+    return response
+
+
+@app.get("/", summary="Descubrir la API de análisis de imágenes")
 def home():
-    return RedirectResponse(url="/docs")
+    return {
+        "service": "ms-ai",
+        "version": __version__,
+        "description": "Análisis técnico de imágenes agrícolas mediante RF-DETR.",
+        "links": {
+            "documentation": "/docs",
+            "openapi": "/openapi.json",
+            "health": "/health",
+            "ready": "/ready",
+            "model": "/api/v1/model",
+        },
+    }

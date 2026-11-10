@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Middleware\AuthenticateService;
 use App\Http\Middleware\AuthenticateToken;
 use App\Http\Middleware\NoStore;
+use App\Http\Middleware\RequestId;
 use App\Http\Middleware\PermissionMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,10 +19,12 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function (): void {
+            require __DIR__.'/../routes/discovery.php';
             Route::get('/.well-known/jwks.json', [AuthController::class, 'keys'])->middleware('throttle:identity-api');
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(RequestId::class);
         $middleware->appendToGroup('api', NoStore::class);
         $middleware->alias([
             'identity.auth' => AuthenticateToken::class,
@@ -33,4 +36,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+        $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response): \Symfony\Component\HttpFoundation\Response {
+            $id = request()->attributes->get('requestId');
+            if (is_string($id)) {
+                $response->headers->set('X-Request-Id', $id);
+            }
+
+            return $response;
+        });
     })->create();
