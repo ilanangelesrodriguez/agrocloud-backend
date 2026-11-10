@@ -29,6 +29,10 @@ return [
     */
 
     'disks' => [
+        'agricultural' => [
+            'driver' => 'local', 'root' => storage_path('app/agricultural'),
+            'serve' => false, 'visibility' => 'private', 'throw' => true,
+        ],
 
         'local' => [
             'driver' => 'local',

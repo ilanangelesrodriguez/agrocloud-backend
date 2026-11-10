@@ -1,0 +1,44 @@
+# Merge from repository root: -f compose.yaml -f services/ms-agricultural/compose.agricultural.yaml
+services:
+  ms-agricultural:
+    build: &agricultural-build
+      context: .
+      dockerfile: services/ms-agricultural/Dockerfile
+    environment: &agricultural-env
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_KEY: ${AGRICULTURAL_APP_KEY:?Set AGRICULTURAL_APP_KEY}
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_DATABASE: agricultural_db
+      DB_USERNAME: agricultural_app
+      DB_PASSWORD: ${AGRICULTURAL_DB_PASSWORD:?Set AGRICULTURAL_DB_PASSWORD}
+      SESSION_DRIVER: array
+      CACHE_STORE: database
+      IDENTITY_SERVICE_URL: http://ms-identity:8000
+      IDENTITY_SERVICE_API_KEY: ${IDENTITY_SERVICE_API_KEY:?Set IDENTITY_SERVICE_API_KEY}
+      AI_SERVICE_URL: http://ms-ai:8000
+      AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:?Set AI_SERVICE_API_KEY}
+      NOTIFICATIONS_EVENT_URL: ${NOTIFICATIONS_EVENT_URL:-}
+      AGRICULTURAL_EVENT_SECRET: ${AGRICULTURAL_EVENT_SECRET:-}
+      AGRICULTURAL_FRONTEND_URL: ${AGRICULTURAL_FRONTEND_URL:-http://localhost:3000}
+      MANUAL_SAMPLING_ENABLED: ${MANUAL_SAMPLING_ENABLED:-false}
+      SUNAT_RUC_URL: ${SUNAT_RUC_URL:-}
+      SUNAT_RUC_KEY: ${SUNAT_RUC_KEY:-}
+    volumes: [agricultural-evidence:/app/storage/app/agricultural]
+
+  agricultural-worker:
+    profiles: [agricultural-worker]
+    build: *agricultural-build
+    environment: *agricultural-env
+    command: [php, artisan, agricultural:work]
+    stop_grace_period: 130s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes: [agricultural-evidence:/app/storage/app/agricultural]
+
+volumes:
+  agricultural-evidence:

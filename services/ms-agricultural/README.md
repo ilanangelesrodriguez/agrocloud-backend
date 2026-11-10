@@ -1,58 +1,64 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ms-agricultural
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+API Laravel 13 / PostgreSQL, adaptada desde `C:\Users\ILAN\Downloads\Nube\agrocloud`. Solo se modifica este servicio. No se trasladan Blade/Livewire, tablas de empresa/usuario ni relaciones Eloquent hacia Identity. No se importaron datos del monolito.
 
-## About Laravel
+## Alcance implementado
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Productores y consulta RUC configurable; catalogos compartidos y configuracion por empresa; procedimientos de muestreo versionados; lotes; recepcion fisica; muestreo y frutos identificados; inspecciones; evidencias privadas; analisis de IA asincrono; decisiones humanas por deteccion y hallazgos manuales; revision explicita de cada fotografia; validacion de inspeccion; dictamenes sucesivos; incidencias con seguimiento; trazabilidad y resumen operativo. Los cambios y sus eventos de notificacion se persisten en la misma transaccion local.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Identidad y aislamiento
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Cada solicitud de negocio exige Authorization: Bearer. Agricultural llama a `POST /api/v1/internal/auth/introspect` de Identity con X-Service-Key. Identity valida firma, expiracion, audiencia, emisor, sesion, usuario, empresa y permisos; Agricultural valida su respuesta y exige empresa positiva. No hay cache local de identidad: la indisponibilidad de Identity devuelve 503 y no concede acceso. El SUPERADMIN sin empresa no puede operar como una empresa arbitraria.
 
-## Learning Laravel
+El contexto de empresa se fija desde la identidad autenticada; las cabeceras o campos de empresa enviados por el cliente no lo sustituyen. Los modelos agricolas tienen un filtro global que falla sin contexto y rechazan reasignaciones de empresa. Los trabajadores establecen y restauran contexto explicito por trabajo. Las relaciones internas usan claves foraneas compuestas con id_empresa; los IDs de usuarios, responsables, inspectores y supervisores son referencias externas sin FK ni copias de cuentas.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+La migracion conserva los nombres principales del dominio original. Las tablas iniciales users, sessions y password_reset_tokens se renombran a legacy_auth_* para apartarlas sin borrar posibles datos previos. No existe proveedor de autenticacion local, modelo User ni endpoints de cuentas. Estas migraciones son para el esqueleto actual de Agricultural, no para ejecutarlas sobre la base del monolito. Revisar y respaldar la base destino antes de aplicarlas.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Flujo y reglas conservadas
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+1. ADMIN configura catalogos y procedimientos. Las versiones de procedimiento son inmutables; solo se habilitan/deshabilitan y las muestras guardan su snapshot. El seed incluye los catalogos agricolas basicos del monolito, sin inventar reglas de calidad ni cuentas de usuarios.
+2. Crear lote con permiso lotes.crear y un Idempotency-Key UUID. Siempre inicia PENDIENTE_RECEPCION; productor debe ser de la empresa. Pesos se convierten y almacenan en kg. Las fechas de ingreso usan ISO 8601 con zona y se guardan en UTC; la fecha prevista no se sobrescribe al recibir.
+3. Solo RECEPCION con permiso recepciones.crear confirma una unica recepcion. Exige peso positivo y explicar diferencias con el declarado. La restriccion unica y el bloqueo del lote impiden recepciones duplicadas.
+4. Solo INSPECTOR crea un muestreo tras la recepcion. Exige procedimiento autorizado, instrucciones confirmadas, limite de frutos, justificacion de desviaciones y poblacion cuando el procedimiento la requiere. MANUAL_SAMPLING_ENABLED=false por defecto: una excepcion manual, si se habilita, exige protocolo, metodo, criterio, seleccion y motivo. Muestras mayores al umbral requieren confirmar la carga. PostgreSQL genera los frutos mediante generate_series en una insercion.
+5. Solo hay una inspeccion EN_CAPTURA por muestra. Un inspector distinto no modifica una inspeccion asignada. Una reinspeccion solo se abre desde el dictamen del supervisor y conserva el expediente anterior.
+6. Cada fruto necesita al menos una foto pertinente. Se admiten JPEG/PNG/WebP de hasta 3 MiB y 16 millones de pixeles. Los originales quedan privados y se descargan mediante `GET /api/v1/evidences/{id}/image`; la ruta fisica no aparece en JSON. Una foto descartada no se elimina: conserva resultados e historial y exige reemplazo para cubrir su fruto.
+7. Las detecciones de IA son datos tecnicos inmutables. El inspector confirma/descarta cada una y registra omisiones como hallazgos manuales. Para revisar una fotografia debe decidir todas sus detecciones y confirmar pertinencia y revision completa; sin IA completada se exige justificacion manual. La huella de revision invalida conclusiones cuando cambia el resultado o los hallazgos.
+8. Finalizar exige cobertura de todos los frutos y revision vigente de todas las fotos activas; no acepta analisis en cola o ejecutandose. Cambia a VALIDADA y pendiente de dictamen.
+9. Solo SUPERVISOR con calidad.clasificar puede dictaminar y nunca su propia inspeccion. Una aprobacion exige expediente completo y ausencia de incidencias ALTA/CRITICA sin cerrar. DOCUMENTACION/CORRECCION_ADMINISTRATIVA permiten un nuevo dictamen con referencia al ultimo y respuesta documentada; nunca se actualiza ni borra el anterior. Una observacion REINSPECCION abre otra inspeccion.
+10. Incidencias: ABIERTA -> EN_ATENCION -> RESUELTA -> CERRADA. Solo el responsable o supervisor las atiende y solo el supervisor verifica cierre o reapertura. Una incidencia alta/critica retiene un lote aprobado; cerrar todas permite liberarlo de nuevo. Las acciones, comprobaciones y evidencias quedan en trazabilidad.
 
-## Agentic Development
+## Integracion con Identity y cupos
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Crear lote consume el recurso lotes de Identity. La operacion local se registra antes de consumir y conserva input, huella, actor, estado de consumo, bloqueo temporal y resultado. Repetir la misma clave e input reutiliza el resultado; input/actor distintos devuelven 409. Ante un timeout, reintentar la misma clave permite recuperar la confirmacion idempotente de Identity. No generar una nueva clave para reintentar la misma operacion.
 
-```bash
-composer require laravel/boost --dev
+El consumo remoto y la escritura local no son una transaccion distribuida. Si se consume y luego falla la escritura, la operacion persistida permite reintentar con la misma clave; los casos irrecuperables requieren conciliacion. No existe devolucion automatica de cupos. La anulacion posterior del lote tampoco devuelve el cupo consumido.
 
-php artisan boost:install
-```
+La consulta de responsables de incidencias usa el API interno de destinatarios de Identity para comprobar empresa, estado y permiso lotes.ver, sin consultar su base.
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## IA y worker persistente
 
-## Contributing
+`POST /api/v1/evidences/{id}/analyze` devuelve 202 y guarda un trabajo; no hace inferencia dentro de la peticion. El worker usa `POST /api/v1/analyses/file` con X-API-Key y el archivo original, sin enviar IDs de negocio a IA. Verifica request_id, modelo, detecciones y SHA-256 contra el original y guarda el resultado completo y la version del modelo. No usa el antiguo /detect ni convierte la respuesta en un dictamen agricola.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Los trabajos tienen lease, token de bloqueo y hasta tres intentos; se recuperan leases vencidos, incluso tras una caida en el ultimo intento. Los resultados tardios no sustituyen un trabajo reclamado por otro proceso. El consumo analisis_ia usa una referencia estable por evidencia: reintentar esa evidencia no descuenta nuevamente. Una llamada a FastAPI interrumpida puede haber completado una inferencia remota: el servicio IA actual no ofrece idempotencia de la inferencia y no se promete exactamente una ejecucion externa.
 
-## Code of Conduct
+Tras agotar intentos se puede reintentar o justificar revision manual. `POST /evidences/{id}/analysis/cancel` permite abandonar un trabajo que no esta ejecutandose, conservando su historial y el archivo. No cancelar ni descartar una foto con analisis en curso.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Ejecutar `php artisan agricultural:work` para procesar IA y outbox; `--once` limita una pasada. Este worker es propio del servicio y no requiere ejecutar queue:work. En produccion supervisarlo y compartir el volumen de evidencia con la API.
 
-## Security Vulnerabilities
+## Eventos para Notifications
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Se emiten lot.created, lot.cancelled, lot.received, inspection.validated, quality.decision.issued, incident.opened, incident.updated y evidence.analysis_failed. El contrato local es events.schema.json: eventId UUID, type, version=1, companyId, occurredAt y data. Los destinatarios se expresan con recipientPermissions o recipientIds dentro de data; Notifications debe comprobarlos con Identity.
 
-## License
+El outbox entrega el cuerpo JSON exacto mediante POST a NOTIFICATIONS_EVENT_URL, con X-Event-Id y X-AgroCloud-Signature = sha256= + HMAC-SHA256 usando AGRICULTURAL_EVENT_SECRET. Reintenta con espera creciente y bloqueos, por lo que el receptor debe deduplicar eventId. Si no hay URL, guarda pendientes sin enviarlos. No se implemento ni modifico ms-notifications y el contrato aun debe conectarse con su consumidor. No activar un destino que responda 2xx sin persistir el evento.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Preparacion (sin ejecutar en esta entrega)
+
+- Completar .env con PostgreSQL, APP_KEY, URLs y claves de Identity/IA. La clave de Identity debe coincidir con IDENTITY_SERVICE_API_KEY y la de IA con SERVICE_API_KEY de ms-ai. Usar HTTPS fuera de local y APP_DEBUG=false.
+- Revisar las migraciones, luego ejecutarlas explicitamente y ejecutar db:seed para catalogos. No se crean usuarios ni datos operativos. Las factories requieren CompanyContext::run y solo producen fixtures de metadatos, no fotografias reales.
+- Configurar primero Identity y sus planes/cupos; despues crear un procedimiento desde una cuenta ADMIN y operar con roles RECEPCION, INSPECTOR y SUPERVISOR apropiados.
+- Para Docker existe Dockerfile y compose.agricultural.yaml opcionales dentro de este servicio. Desde la raiz combinar `-f compose.yaml -f services/ms-agricultural/compose.agricultural.yaml`; si se usa el overlay de Identity, combinarlo tambien. Habilitar el perfil agricultural-worker para el worker. Las variables se pasan al entorno de Compose o .env raiz; Compose no lee automaticamente el .env de este servicio. El volumen agricultural-evidence preserva los originales y se comparte con el worker. Los servidores PHP incluidos son de desarrollo.
+- Para ejecucion manual se necesitan PHP 8.4, Composer 2 y PostgreSQL. No se requieren Laravel/Blade/Vite para servir la API; los archivos frontend heredados no se registran como rutas.
+
+Los endpoints internos se publican como `/api/v1/agricultural/...` mediante el Gateway existente. Ver openapi.yaml para las rutas y cuerpos de solicitud. El contrato compartido fuera de este servicio queda intacto por el alcance pedido.
+
+Readiness comprueba conexion DB, tablas principales y configuracion basica de Identity; no ejecuta inferencias, entrega notificaciones ni comprueba todos los upstreams. En esta entrega no se ejecutaron tests, compilaciones, contenedores, migraciones, seeders, trabajos ni llamadas a servicios de negocio. La validacion es estatica y el funcionamiento integrado queda pendiente de esa ejecucion.
