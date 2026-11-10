@@ -99,6 +99,8 @@ export function configureProxy(app: NestExpressApplication): void {
       }
       const headers = endToEnd(req.headers);
       delete headers.host;
+      const requestId = String(res.getHeader('X-Request-Id'));
+      headers['x-request-id'] = requestId;
       // Never trust identity claims or forwarding headers supplied by clients.
       for (const name of Object.keys(headers)) {
         if (
@@ -128,7 +130,10 @@ export function configureProxy(app: NestExpressApplication): void {
             reply.destroy();
             return;
           }
-          res.writeHead(reply.statusCode ?? 502, endToEnd(reply.headers));
+          res.writeHead(reply.statusCode ?? 502, {
+            ...endToEnd(reply.headers),
+            'x-request-id': requestId,
+          });
           reply.on('error', () => res.destroy());
           reply.pipe(res);
         },

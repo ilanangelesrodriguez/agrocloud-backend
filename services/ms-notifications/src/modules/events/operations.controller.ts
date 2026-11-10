@@ -3,6 +3,7 @@ import {
   Controller,
   ExecutionContext,
   Get,
+  HttpCode,
   Injectable,
   Param,
   Post,
@@ -53,6 +54,7 @@ export class OperationsController {
     };
   }
   @Post('events/:source/:eventId/retry')
+  @HttpCode(202)
   async retryEvent(
     @Param('source') source: string,
     @Param('eventId') eventId: string,
@@ -71,6 +73,7 @@ export class OperationsController {
     return { queued: true };
   }
   @Post('deliveries/:id/retry')
+  @HttpCode(202)
   async retryDelivery(@Param('id') id: string) {
     const rows = await this.database.query(
       `UPDATE notification_deliveries SET status='PENDING',attempts=0,next_attempt_at=now(),last_error_code=NULL

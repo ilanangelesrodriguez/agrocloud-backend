@@ -17,25 +17,100 @@
         "summary": "GET /",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": []
@@ -47,25 +122,100 @@
         "summary": "GET /health",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": []
@@ -77,25 +227,100 @@
         "summary": "GET /ready",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": []
@@ -107,25 +332,100 @@
         "summary": "GET /api/v1/notifications",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -169,25 +469,100 @@
         "summary": "GET /api/v1/notifications/unread-count",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -203,25 +578,100 @@
         "summary": "PATCH /api/v1/notifications/{id}/read",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -247,25 +697,100 @@
         "summary": "PATCH /api/v1/notifications/read-all",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -281,25 +806,100 @@
         "summary": "GET /api/v1/notification-preferences",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -313,25 +913,100 @@
         "summary": "PUT /api/v1/notification-preferences",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -381,25 +1056,100 @@
         "summary": "POST /api/v1/internal/events/agricultural",
         "responses": {
           "202": {
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -436,25 +1186,100 @@
         "summary": "POST /api/v1/internal/events/identity",
         "responses": {
           "202": {
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -491,25 +1316,100 @@
         "summary": "POST /api/v1/internal/events/billing",
         "responses": {
           "202": {
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -546,25 +1446,100 @@
         "summary": "GET /api/v1/internal/operations/status",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -579,26 +1554,101 @@
         "operationId": "post_api_v1_internal_operations_events_source_eventId_retry",
         "summary": "POST /api/v1/internal/operations/events/{source}/{eventId}/retry",
         "responses": {
-          "201": {
-            "description": "Success"
+          "202": {
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -631,26 +1681,101 @@
         "operationId": "post_api_v1_internal_operations_deliveries_id_retry",
         "summary": "POST /api/v1/internal/operations/deliveries/{id}/retry",
         "responses": {
-          "201": {
-            "description": "Success"
+          "202": {
+            "description": "Success",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid request"
+            "description": "Invalid request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Invalid credentials/signature"
+            "description": "Invalid credentials/signature",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Account not eligible"
+            "description": "Account not eligible",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Idempotency or state conflict"
+            "description": "Idempotency or state conflict",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limit"
+            "description": "Rate limit",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Required dependency unavailable"
+            "description": "Required dependency unavailable",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": [

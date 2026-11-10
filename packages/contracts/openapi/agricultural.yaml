@@ -1,47 +1,2236 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "AgroCloud agricultural",
-    "version": "0.1.0",
-    "description": "Contrato de estado implementado. Los endpoints de negocio de Billing e IA se describen en su OpenAPI generado; Identity, Agricultural y Notifications siguen en desarrollo."
+    "title": "AgroCloud Agricultural",
+    "version": "1.0.0",
+    "description": "Numeric external identity IDs; online Identity introspection; runtime integration not yet verified."
   },
   "servers": [
     {
-      "url": "http://localhost:8002"
+      "url": "http://localhost:8002/api/v1"
     }
   ],
   "paths": {
-    "/up": {
+    "/health": {
       "get": {
-        "operationId": "agricultural_up",
+        "operationId": "get_health",
+        "summary": "GET /health",
+        "security": [],
         "responses": {
           "200": {
-            "description": "El proceso responde"
-          }
-        }
-      }
-    },
-    "/api/v1/health": {
-      "get": {
-        "operationId": "agricultural_api_v1_health",
-        "responses": {
-          "200": {
-            "description": "El proceso responde"
-          }
-        }
-      }
-    },
-    "/api/v1/ready": {
-      "get": {
-        "operationId": "agricultural_api_v1_ready",
-        "responses": {
-          "200": {
-            "description": "Dependencias disponibles"
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
           },
           "503": {
-            "description": "Dependencias no disponibles"
+            "description": "Required service unavailable"
           }
         }
+      }
+    },
+    "/ready": {
+      "get": {
+        "operationId": "get_ready",
+        "summary": "GET /ready",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        }
+      }
+    },
+    "/producers": {
+      "get": {
+        "operationId": "get_producers",
+        "summary": "GET /producers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_producers",
+        "summary": "POST /producers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          },
+          "201": {
+            "description": "Created"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ruc": {
+                    "type": "string",
+                    "pattern": "^[0-9]{11}$"
+                  },
+                  "nombre_razon_social": {
+                    "type": "string"
+                  },
+                  "fundo": {
+                    "type": "string"
+                  },
+                  "ubicacion": {
+                    "type": "string"
+                  },
+                  "departamento": {
+                    "type": "string"
+                  },
+                  "provincia": {
+                    "type": "string"
+                  },
+                  "distrito": {
+                    "type": "string"
+                  },
+                  "ubigeo": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ruc",
+                  "nombre_razon_social"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/producers/{producer}": {
+      "get": {
+        "operationId": "get_producers_producer",
+        "summary": "GET /producers/{producer}",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "producer",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      },
+      "put": {
+        "operationId": "put_producers_producer",
+        "summary": "PUT /producers/{producer}",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "producer",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ruc": {
+                    "type": "string",
+                    "pattern": "^[0-9]{11}$"
+                  },
+                  "nombre_razon_social": {
+                    "type": "string"
+                  },
+                  "fundo": {
+                    "type": "string"
+                  },
+                  "ubicacion": {
+                    "type": "string"
+                  },
+                  "departamento": {
+                    "type": "string"
+                  },
+                  "provincia": {
+                    "type": "string"
+                  },
+                  "distrito": {
+                    "type": "string"
+                  },
+                  "ubigeo": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ruc",
+                  "nombre_razon_social"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lots": {
+      "get": {
+        "operationId": "get_lots",
+        "summary": "GET /lots",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_lots",
+        "summary": "POST /lots",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id_productor": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "codigo_lote": {
+                    "type": "string"
+                  },
+                  "producto": {
+                    "type": "string"
+                  },
+                  "variedad": {
+                    "type": "string"
+                  },
+                  "peso_kg": {
+                    "type": "number",
+                    "exclusiveMinimum": true,
+                    "minimum": 0
+                  },
+                  "unidad_medida": {
+                    "type": "string"
+                  },
+                  "fecha_llegada_prevista": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "id_productor",
+                  "codigo_lote",
+                  "producto",
+                  "peso_kg",
+                  "unidad_medida",
+                  "fecha_llegada_prevista"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/lots/{lot}": {
+      "get": {
+        "operationId": "get_lots_lot",
+        "summary": "GET /lots/{lot}",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/lots/{lot}/cancel": {
+      "post": {
+        "operationId": "post_lots_lot_cancel",
+        "summary": "POST /lots/{lot}/cancel",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "motivo": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motivo"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lots/{lot}/traceability": {
+      "get": {
+        "operationId": "get_lots_lot_traceability",
+        "summary": "GET /lots/{lot}/traceability",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/lots/{lot}/reception": {
+      "post": {
+        "operationId": "post_lots_lot_reception",
+        "summary": "POST /lots/{lot}/reception",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          },
+          "201": {
+            "description": "Created"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tipo_documento": {
+                    "type": "string"
+                  },
+                  "documento": {
+                    "type": "string"
+                  },
+                  "peso_recibido_kg": {
+                    "type": "number",
+                    "minimum": 0.01
+                  },
+                  "recibido_en": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "observaciones": {
+                    "type": "string"
+                  },
+                  "placa": {
+                    "type": "string"
+                  },
+                  "transportista": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "tipo_documento",
+                  "documento",
+                  "peso_recibido_kg",
+                  "recibido_en"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/samplings": {
+      "get": {
+        "operationId": "get_samplings",
+        "summary": "GET /samplings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        }
+      }
+    },
+    "/lots/{lot}/samplings": {
+      "post": {
+        "operationId": "post_lots_lot_samplings",
+        "summary": "POST /lots/{lot}/samplings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          },
+          "201": {
+            "description": "Created"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "procedure_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "tamano_muestra": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "confirmar_instrucciones": {
+                    "type": "boolean"
+                  },
+                  "confirmar_carga": {
+                    "type": "boolean"
+                  },
+                  "poblacion_estimada": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "fuente_poblacion": {
+                    "type": "string"
+                  },
+                  "motivo_desviacion": {
+                    "type": "string"
+                  },
+                  "motivo_excepcion": {
+                    "type": "string"
+                  },
+                  "protocolo": {
+                    "type": "string"
+                  },
+                  "metodo": {
+                    "type": "string"
+                  },
+                  "criterio_muestra": {
+                    "type": "string"
+                  },
+                  "seleccion_frutos": {
+                    "type": "string"
+                  },
+                  "observaciones": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "tamano_muestra",
+                  "confirmar_instrucciones"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/samplings/{sampling}": {
+      "get": {
+        "operationId": "get_samplings_sampling",
+        "summary": "GET /samplings/{sampling}",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "sampling",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/samplings/{sampling}/fruits": {
+      "get": {
+        "operationId": "get_samplings_sampling_fruits",
+        "summary": "GET /samplings/{sampling}/fruits",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "sampling",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/inspections": {
+      "get": {
+        "operationId": "get_inspections",
+        "summary": "GET /inspections",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        }
+      }
+    },
+    "/inspections/{inspection}": {
+      "get": {
+        "operationId": "get_inspections_inspection",
+        "summary": "GET /inspections/{inspection}",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "inspection",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/samplings/{sampling}/inspections": {
+      "post": {
+        "operationId": "post_samplings_sampling_inspections",
+        "summary": "POST /samplings/{sampling}/inspections",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          },
+          "201": {
+            "description": "Created"
+          }
+        },
+        "parameters": [
+          {
+            "name": "sampling",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/inspections/{inspection}/evidences": {
+      "post": {
+        "operationId": "post_inspections_inspection_evidences",
+        "summary": "POST /inspections/{inspection}/evidences",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          },
+          "201": {
+            "description": "Created"
+          }
+        },
+        "parameters": [
+          {
+            "name": "inspection",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id_fruto": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "foto": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "id_fruto",
+                  "foto"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evidences/{evidence}/image": {
+      "get": {
+        "operationId": "get_evidences_evidence_image",
+        "summary": "GET /evidences/{evidence}/image",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "evidence",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/evidences/{evidence}/analysis/cancel": {
+      "post": {
+        "operationId": "post_evidences_evidence_analysis_cancel",
+        "summary": "POST /evidences/{evidence}/analysis/cancel",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "evidence",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "motivo": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motivo"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evidences/{evidence}/analyze": {
+      "post": {
+        "operationId": "post_evidences_evidence_analyze",
+        "summary": "POST /evidences/{evidence}/analyze",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          },
+          "202": {
+            "description": "Success"
+          }
+        },
+        "parameters": [
+          {
+            "name": "evidence",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/evidences/{evidence}/detections/{index}": {
+      "patch": {
+        "operationId": "patch_evidences_evidence_detections_index",
+        "summary": "PATCH /evidences/{evidence}/detections/{index}",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "evidence",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirmada": {
+                    "type": "boolean"
+                  },
+                  "observaciones": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "confirmada"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inspections/{inspection}/findings": {
+      "post": {
+        "operationId": "post_inspections_inspection_findings",
+        "summary": "POST /inspections/{inspection}/findings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          },
+          "201": {
+            "description": "Created"
+          }
+        },
+        "parameters": [
+          {
+            "name": "inspection",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id_evidencia": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "clase": {
+                    "type": "string"
+                  },
+                  "naturaleza": {
+                    "type": "string",
+                    "enum": [
+                      "ORGANISMO",
+                      "ENFERMEDAD",
+                      "DANO_PLAGA",
+                      "DEFECTO_FISICO",
+                      "OTRO"
+                    ]
+                  },
+                  "observaciones": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id_evidencia",
+                  "clase",
+                  "naturaleza",
+                  "observaciones"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evidences/{evidence}/review": {
+      "post": {
+        "operationId": "post_evidences_evidence_review",
+        "summary": "POST /evidences/{evidence}/review",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "evidence",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "revision_completa": {
+                    "type": "boolean"
+                  },
+                  "imagen_pertinente": {
+                    "type": "boolean"
+                  },
+                  "justificacion": {
+                    "type": "string"
+                  },
+                  "conclusion": {
+                    "type": "string",
+                    "enum": [
+                      "CON_HALLAZGOS",
+                      "SIN_HALLAZGOS"
+                    ]
+                  }
+                },
+                "required": [
+                  "revision_completa",
+                  "imagen_pertinente"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evidences/{evidence}/discard": {
+      "post": {
+        "operationId": "post_evidences_evidence_discard",
+        "summary": "POST /evidences/{evidence}/discard",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "evidence",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "motivo": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motivo"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inspections/{inspection}/validate": {
+      "post": {
+        "operationId": "post_inspections_inspection_validate",
+        "summary": "POST /inspections/{inspection}/validate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "inspection",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "observaciones": {
+                    "type": "string"
+                  }
+                },
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inspections/{inspection}/decisions": {
+      "post": {
+        "operationId": "post_inspections_inspection_decisions",
+        "summary": "POST /inspections/{inspection}/decisions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          },
+          "201": {
+            "description": "Created"
+          }
+        },
+        "parameters": [
+          {
+            "name": "inspection",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "APROBADO",
+                      "OBSERVADO",
+                      "RECHAZADO"
+                    ]
+                  },
+                  "dictamen_anterior": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "tipo_observacion": {
+                    "type": "string",
+                    "enum": [
+                      "REINSPECCION",
+                      "DOCUMENTACION",
+                      "CORRECCION_ADMINISTRATIVA"
+                    ]
+                  },
+                  "respuesta_observacion": {
+                    "type": "string"
+                  },
+                  "observaciones": {
+                    "type": "string"
+                  },
+                  "protocolo_calidad": {
+                    "type": "string"
+                  },
+                  "revision_independiente": {
+                    "type": "boolean"
+                  },
+                  "categoria": {
+                    "type": "string"
+                  },
+                  "motivo": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "decision",
+                  "observaciones",
+                  "protocolo_calidad",
+                  "revision_independiente"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lots/{lot}/incidents": {
+      "get": {
+        "operationId": "get_lots_lot_incidents",
+        "summary": "GET /lots/{lot}/incidents",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "post_lots_lot_incidents",
+        "summary": "POST /lots/{lot}/incidents",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          },
+          "201": {
+            "description": "Created"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "titulo": {
+                    "type": "string"
+                  },
+                  "descripcion": {
+                    "type": "string"
+                  },
+                  "gravedad": {
+                    "type": "string",
+                    "enum": [
+                      "BAJA",
+                      "MEDIA",
+                      "ALTA",
+                      "CRITICA"
+                    ]
+                  },
+                  "responsable": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "titulo",
+                  "descripcion",
+                  "gravedad",
+                  "responsable"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/incidents/{incident}": {
+      "patch": {
+        "operationId": "patch_incidents_incident",
+        "summary": "PATCH /incidents/{incident}",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "incident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "estado": {
+                    "type": "string",
+                    "enum": [
+                      "ABIERTA",
+                      "EN_ATENCION",
+                      "RESUELTA",
+                      "CERRADA"
+                    ]
+                  },
+                  "accion": {
+                    "type": "string"
+                  },
+                  "comprobacion": {
+                    "type": "string"
+                  },
+                  "evidencia": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "estado",
+                  "accion"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/catalogs": {
+      "get": {
+        "operationId": "get_catalogs",
+        "summary": "GET /catalogs",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "tipo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "producto",
+                "variedad",
+                "unidad",
+                "metodo",
+                "defecto",
+                "categoria",
+                "motivo"
+              ]
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "post_catalogs",
+        "summary": "POST /catalogs",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          },
+          "201": {
+            "description": "Created"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tipo": {
+                    "type": "string"
+                  },
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "parent_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "tipo",
+                  "nombre"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/catalogs/{catalog}": {
+      "patch": {
+        "operationId": "patch_catalogs_catalog",
+        "summary": "PATCH /catalogs/{catalog}",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "catalog",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "estado": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "estado"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sampling-procedures": {
+      "get": {
+        "operationId": "get_sampling-procedures",
+        "summary": "GET /sampling-procedures",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_sampling-procedures",
+        "summary": "POST /sampling-procedures",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          },
+          "201": {
+            "description": "Created"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  },
+                  "metodo": {
+                    "type": "string"
+                  },
+                  "producto": {
+                    "type": "string"
+                  },
+                  "criterio_muestra": {
+                    "type": "string"
+                  },
+                  "seleccion_frutos": {
+                    "type": "string"
+                  },
+                  "max_frutos": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "tamano_recomendado": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "requiere_poblacion": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "nombre",
+                  "version",
+                  "metodo",
+                  "criterio_muestra",
+                  "seleccion_frutos",
+                  "max_frutos"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sampling-procedures/{procedure}": {
+      "patch": {
+        "operationId": "patch_sampling-procedures_procedure",
+        "summary": "PATCH /sampling-procedures/{procedure}",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "procedure",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "activo": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "activo"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reports/summary": {
+      "get": {
+        "operationId": "get_reports_summary",
+        "summary": "GET /reports/summary",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission, role or quota denied"
+          },
+          "409": {
+            "description": "State or idempotency conflict"
+          },
+          "422": {
+            "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "Required service unavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     }
   }

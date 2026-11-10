@@ -37,6 +37,11 @@ jobs:
                        *Path('services').glob('*/openapi.yaml')]
           for path in contracts:
               validate_spec(yaml.safe_load(path.read_text(encoding='utf-8')))
+          for service in ('identity', 'agricultural', 'notifications'):
+              source = Path(f'services/ms-{service}/openapi.yaml')
+              published = Path(f'packages/contracts/openapi/{service}.yaml')
+              if source.read_bytes() != published.read_bytes():
+                  raise SystemExit(f'OpenAPI copy is out of sync: {published}')
           for path in Path('packages/contracts/events').glob('*.json'):
               Draft202012Validator.check_schema(json.loads(path.read_text()))
           PY

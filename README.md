@@ -70,7 +70,7 @@ Billing entrega payment.succeeded al receptor firmado e idempotente de Identity 
 
 Los productores de eventos Identity/Billing hacia Notifications siguen pendientes; no se cambia el destino Billing-Identity para simular un fanout. En serverless Billing necesita un programador externo para su despacho interno cuando no existe un proceso persistente.
 
-Los contratos completos de Identity, Agricultural y Notifications estan en `services/<servicio>/openapi.yaml`; Agricultural incluye `events.schema.json`. Los contratos compartidos de salud no reemplazan estos contratos. Billing e IA exponen contratos generados en `/openapi.json`.
+Los contratos completos de Identity, Agricultural y Notifications estan en `services/<servicio>/openapi.yaml`; Agricultural incluye `events.schema.json`. Los tres contratos se sincronizan con `packages/contracts/openapi`. Las convenciones para operaciones nuevas y la transición de v1 están en [Estándar API](docs/architecture/api-standard.md). Billing e IA exponen contratos generados en `/openapi.json`.
 
 ## Ejecucion manual y validacion
 
