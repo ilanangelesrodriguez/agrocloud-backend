@@ -13,3 +13,11 @@
 **/storage/logs/*
 **/data/*.sqlite*
 **/data/annotated
+
+# Private runtime data and generated credentials must never enter the build context.
+**/storage/app/identity
+**/storage/app/agricultural
+**/*.pem
+**/*.key
+**/bootstrap/cache/*.php
+**/storage/framework/**

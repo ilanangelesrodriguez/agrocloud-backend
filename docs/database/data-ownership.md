@@ -2,14 +2,16 @@
 
 | Servicio | Base / usuario local | Propiedad |
 | --- | --- | --- |
-| Identity | identity_db / identity_app | Usuarios, empresas, credenciales y suscripciones (modelo pendiente) |
-| Agricultural | agricultural_db / agricultural_app | Productores, lotes, inspecciones y dictámenes (modelo pendiente) |
-| IA | ai_db / ai_app | Ejecuciones y detecciones técnicas; sin dictámenes agrícolas |
-| Billing | MongoDB agrocloud_billing | Órdenes, pagos, reembolsos, webhooks y outbox |
-| Notifications | notifications_db / notifications_app | Reserva para bandeja, preferencias y entregas; acceso a datos aún no implementado |
+| Identity | identity_db / identity_app | Usuarios, empresas, credenciales, sesiones, permisos, suscripciones, cupos y eventos de pagos recibidos |
+| Agricultural | agricultural_db / agricultural_app | Productores, lotes, recepciones, muestreos, inspecciones, evidencias, dictamenes, incidencias, trabajos IA y outbox |
+| IA | ai_db / ai_app | Ejecuciones y detecciones tecnicas; el dictamen pertenece a Agricultural |
+| Billing | MongoDB agrocloud_billing | Ordenes, pagos, reembolsos, webhooks y outbox |
+| Notifications | notifications_db / notifications_app | Eventos recibidos, bandeja, preferencias, entregas y reintentos |
 
-Cada aplicación debe usar su usuario, nunca el administrador PostgreSQL. El script inicial revoca acceso público a cada base. No se permiten consultas cruzadas ni claves foráneas entre servicios: los IDs externos y contratos definen las relaciones.
+Cada aplicacion usa su usuario, nunca el administrador PostgreSQL. El script inicial revoca acceso publico a cada base. Las relaciones externas usan IDs y contratos HTTP/eventos; no se crean consultas cruzadas ni claves foraneas entre servicios.
 
-Agricultural conserva las migraciones iniciales de Laravel como antecedente. No debe usar ese users para autenticación independiente; antes de sus primeras migraciones de dominio hay que revisar si existen instalaciones con datos y planificar su sustitución. No se eliminó ninguna tabla.
+Identity es la autoridad de usuarios y pertenencia a empresas. Agricultural y Notifications validan actores y referencias mediante Identity, sin mantener credenciales propias de usuarios. Billing conserva companyId numerico compatible con el contrato de Identity.
 
-Billing usa companyId numérico actualmente. Identity deberá conservar compatibilidad o introducir un identificador público con migración explícita. Notifications guardará referencias a destinatarios, sin copiar credenciales ni crear cuentas propias.
+identity-keys conserva las claves RSA privadas de Identity. agricultural-evidence conserva los originales privados y se comparte con el worker agricola. No guardar estos datos en Git ni en imagenes Docker. Las copias de seguridad deben incluir bases y volumenes persistentes.
+
+Migraciones y catalogos se aprovisionan explicitamente antes de arrancar workers; no se borran tablas existentes para reconciliar configuraciones. Cambiar contrasenas del entorno no modifica usuarios PostgreSQL inicializados previamente.

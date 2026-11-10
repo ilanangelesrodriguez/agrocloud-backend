@@ -1,13 +1,13 @@
 # Arquitectura actual
 
-El Gateway recibe tráfico en 4000 y enruta por servicio hacia APIs versionadas. Cada servicio valida sus propias credenciales; la autenticación central y la pertenencia a empresa siguen pendientes. No deben publicarse datos de negocio sin esos controles.
+El Gateway recibe trafico en 4000 y enruta a cinco APIs. CORS usa una lista explicita de origenes. Cada servicio valida autenticacion y autorizacion; el Gateway bloquea rutas internas y elimina cabeceras de identidad no confiables.
 
-Identity y Agricultural son esqueletos Laravel con API de estado y configuración PostgreSQL. Billing conserva órdenes, pagos, reembolsos, webhooks y outbox sobre MongoDB. IA conserva inferencia, PostgreSQL/Alembic y almacenamiento Cloudinary. Notifications sigue siendo un esqueleto con liveness.
+Identity administra usuarios, empresas, sesiones, permisos, suscripciones y cupos sobre PostgreSQL. Agricultural administra productores, lotes, inspecciones, evidencias y dictamenes sobre su propia base. Usa Identity para identidad/cupos e IA para inferencia; su worker procesa trabajos y outbox. Notifications persiste eventos deduplicados, bandeja, preferencias y entregas; su worker consulta destinatarios en Identity y entrega correo cuando SMTP esta habilitado.
 
-Compose raíz es la entrada de desarrollo. Los Dockerfiles Node usan el lockfile raíz; Laravel comparte una receta parametrizada; IA conserva su Dockerfile. PostgreSQL y MongoDB permanecen sin puertos publicados. No hay Redis ni broker: no existen consumidores que los requieran aún.
+Billing conserva ordenes, pagos, reembolsos, webhooks y outbox en MongoDB. Su outbox envia eventos firmados a Identity para aplicar derechos sobre ordenes conocidas. Agricultural envia eventos firmados a Notifications. No existe fanout automatico de eventos Identity/Billing hacia Notifications. IA persiste ejecuciones tecnicas con PostgreSQL/Alembic y usa Roboflow/Cloudinary.
 
-Pendientes de integración: autenticación de Identity y multiempresa; entidades agrícolas; contrato Agricultural-IA; receptor firmado e idempotente Billing-Identity; persistencia y worker de Notifications; validación dinámica y despliegue de producción. No se agregaron endpoints ficticios para esas funciones.
+compose.yaml es la entrada local completa, con Dockerfiles especificos de Identity, Agricultural y Notifications. Los workers agricola y de notificaciones arrancan por defecto. El worker de correo Identity usa perfil identity-mail; Billing usa su temporizador o un worker bajo perfil events, desactivando antes el temporizador del API. No hay broker ni Redis: los trabajos y outboxes se persisten en las bases de sus propietarios.
 
-Los contratos OpenAPI de estado son implementados; el evento notification.requested es una propuesta. Un cambio de companyId numérico a UUID requiere una migración coordinada y no forma parte de esta preparación.
+Las claves RSA de Identity y evidencias agricolas usan volumenes persistentes. Las bases no publican puertos al host y las APIs se publican en loopback. Las migraciones Laravel/Notifications son pasos explicitos previos al arranque de workers; IA aplica Alembic al iniciar. Ver README raiz para el orden de aprovisionamiento.
 
-El perfil Compose `events` agrega un worker de outbox independiente. Requiere URL de receptor y desactivar el temporizador del proceso HTTP con BILLING_OUTBOX_TIMER_ENABLED=false.
+La configuracion integra contratos existentes; no acredita arranque, migraciones ni flujos de negocio ejecutados. Produccion requiere servidores y supervision adecuados, secretos, HTTPS y validacion operativa.

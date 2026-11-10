@@ -25,7 +25,7 @@ Todas las consultas y actualizaciones de bandeja usan el usuario y la empresa au
 | GET /api/v1/notification-preferences | Preferencias y lista de tipos opcionales |
 | PUT /api/v1/notification-preferences | Reemplazar mutedKinds y emailEnabled |
 
-Con el Gateway actual, la bandeja interna /api/v1/notifications se consume como /api/v1/notifications/notifications, y las preferencias como /api/v1/notifications/notification-preferences. El primer notifications identifica el servicio y el segundo la ruta interna. No se modifico el enrutamiento compartido.
+El Gateway expone la bandeja en /api/v1/notifications y las preferencias en /api/v1/notifications/preferences. Conserva las rutas anteriores con doble notifications y notification-preferences por compatibilidad.
 
 Se conserva GET / del esqueleto por compatibilidad. OpenAPI esta en openapi.yaml. El frontend puede hacer polling de la primera pagina y el contador; no se implementaron WebSocket/SSE.
 
@@ -74,7 +74,7 @@ No se reenvian entregas PROVIDER_ACCEPTED desde esos endpoints. El Gateway exist
 1. Completar .env con PostgreSQL propio y las credenciales de Identity. Para ejecucion manual usar hosts/puertos locales; para Compose usar DNS de contenedores. En DATABASE_URL escapar las credenciales. El overlay espera contrasenas alfanumericas porque interpola la URL.
 2. Instalar dependencias Node desde la raiz del monorepo con su lockfile. No crear un lockfile anidado.
 3. Revisar la migracion y ejecutarla explicitamente con `npm run migrate -w @agrocloud/ms-notifications`. El script usa una conexion dedicada para su bloqueo de migracion y transaccion para los cambios. El rollback automatico se rechaza para conservar la bandeja y el historial; requiere una migracion revisada. No ejecutar este esquema sobre la base del monolito.
-4. Configurar y ejecutar API y worker. La puesta en marcha debe preparar primero los artefactos dist; no se generaron en esta entrega. Para Docker, combinar desde la raiz `-f compose.yaml -f services/ms-notifications/compose.notifications.yaml` y habilitar el perfil notifications-worker. El Dockerfile incluye scripts y SQL para poder ejecutar la migracion explicita. El arranque del contenedor no aplica DDL.
-5. El overlay solo extiende Notifications. Usa las variables del entorno de Compose o .env raiz, no lee automaticamente el .env del servicio. Sus variables de correo son NOTIFICATIONS_MAIL_ENABLED, NOTIFICATIONS_SMTP_URL y NOTIFICATIONS_MAIL_FROM; para frontend usa NOTIFICATIONS_FRONTEND_URL. NODE_ENV=development permite HTTP entre contenedores locales; produccion exige HTTPS para Identity/frontend y configuracion SMTP segura.
+4. Para Docker usar compose.yaml raiz: incluye Dockerfile propio, API y notifications-worker sin perfil adicional. Aplicar primero node scripts/migrate.mjs como indica el README raiz; el contenedor no aplica DDL al arrancar.
+5. El overlay se conserva como override opcional. Compose usa .env raiz, no carga automaticamente el .env del servicio. El correo usa NOTIFICATIONS_MAIL_ENABLED, NOTIFICATIONS_SMTP_URL y NOTIFICATIONS_MAIL_FROM; el frontend usa NOTIFICATIONS_FRONTEND_URL. El entorno local permite HTTP entre contenedores; produccion requiere HTTPS y SMTP seguro.
 
 Se conservaron las dependencias y cambios parciales existentes, incluido el lockfile raiz previo. No se ejecutaron tests, compilaciones, migraciones, workers, contenedores ni envios de correo. La revision realizada es estatica: formato, lint sin comprobacion de tipos, sintaxis de scripts y contratos. El flujo integrado y las migraciones requieren verificacion posterior con los servicios configurados.

@@ -30,9 +30,13 @@ jobs:
           import yaml
           from jsonschema import Draft202012Validator
           from openapi_spec_validator import validate_spec
-          yaml.safe_load(Path('compose.yaml').read_text())
-          for path in Path('packages/contracts/openapi').glob('*.yaml'):
-              validate_spec(yaml.safe_load(path.read_text()))
+          compose_files = [Path('compose.yaml'), *Path('services').glob('*/compose.*.yaml')]
+          for path in compose_files:
+              yaml.safe_load(path.read_text(encoding='utf-8'))
+          contracts = [*Path('packages/contracts/openapi').glob('*.yaml'),
+                       *Path('services').glob('*/openapi.yaml')]
+          for path in contracts:
+              validate_spec(yaml.safe_load(path.read_text(encoding='utf-8')))
           for path in Path('packages/contracts/events').glob('*.json'):
               Draft202012Validator.check_schema(json.loads(path.read_text()))
           PY

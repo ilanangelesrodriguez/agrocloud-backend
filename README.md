@@ -1,51 +1,79 @@
 # AgroCloud Backend
 
-Monorepo con Gateway NestJS, Identity y Agricultural Laravel, IA FastAPI, Billing y Notifications NestJS.
+Monorepo con Gateway NestJS, Identity y Agricultural Laravel, Notifications y Billing NestJS, e IA FastAPI.
 
 ## Estado actual
 
-Se preparó la infraestructura de desarrollo, la instalación Node centralizada y rutas de estado. Identity y Agricultural todavía no implementan autenticación ni entidades de negocio. Notifications tiene liveness, pero no bandeja ni persistencia. El Gateway reenvía solicitudes; la autenticación y autorización deben implementarse en cada servicio antes de exponer datos de negocio.
+Identity implementa autenticacion, sesiones, empresas, permisos, suscripciones, cupos y recepcion firmada de pagos. Agricultural implementa el dominio agricola, evidencias privadas, trabajos de IA y outbox. Notifications implementa bandeja, preferencias, deduplicacion y entregas. Billing conserva su integracion Culqi y outbox; IA utiliza Roboflow y Cloudinary.
 
-## Preparación local
+El archivo `compose.yaml` es la entrada oficial del entorno local: incluye Dockerfiles especificos, configuracion interna, workers y almacenamiento persistente. Los tres Compose de servicio se conservan como overrides opcionales; no son necesarios para el arranque normal. Los comandos siguientes especifican `-f compose.yaml` para evitar una variable COMPOSE_FILE antigua.
 
-Requisitos: Docker Compose v2; para ejecución manual, Node 22, PHP 8.4 con PDO PostgreSQL y Composer 2, Python 3.12.
+## Preparacion local
 
-1. Copiar `.env.example` a `.env` y completar contraseñas y claves. Usar contraseñas alfanuméricas para IA porque se interpolan en una URL. Generar claves Laravel distintas con `php -r "echo 'base64:'.base64_encode(random_bytes(32)).PHP_EOL;"`. Las claves internas de Billing, webhook y firma requieren al menos 32 caracteres. Culqi necesita claves de su entorno test.
-2. Cuando se autorice construir y arrancar, usar `docker compose up --build -d` desde la raíz. Este comando no se ejecutó durante la corrección.
-3. Las migraciones Laravel son explícitas: `docker compose exec ms-identity php artisan migrate` y `docker compose exec ms-agricultural php artisan migrate`. Revisar primero las migraciones iniciales: Agricultural aún conserva el esquema de usuarios del generador y no debe convertirse en una segunda autoridad de identidad. No se borraron datos ni migraciones.
-4. IA ejecuta Alembic antes de Uvicorn; `AUTO_CREATE_TABLES=false`. Sin Roboflow y Cloudinary puede responder a liveness en desarrollo, pero readiness será 503 y la inferencia necesita esas credenciales.
+Requisitos: Docker Compose v2. Para ejecucion manual: Node 22, PHP 8.4 con PDO PostgreSQL y Composer 2, Python 3.12.
 
-PostgreSQL inicializa cuatro bases con usuarios distintos al crear un volumen vacío. Cambiar las contraseñas del `.env` después no cambia usuarios ya creados: gestionar la rotación por SQL. MongoDB y PostgreSQL no publican puertos al host. Las aplicaciones se publican solo en loopback. Compose usa una red propia del proyecto. Los servidores PHP incluidos son exclusivamente para desarrollo.
+1. Copiar `.env.example` a `.env` y completar claves y contrasenas independientes. IA y Notifications interpolan contrasenas en URLs: usar valores alfanumericos aleatorios o adaptar las URLs con escape correcto. Generar dos APP_KEY Laravel diferentes, con 32 bytes aleatorios en base64. Las claves internas y secretos de eventos requieren al menos 32 caracteres.
+2. Revisar y respaldar las bases existentes antes de aplicar migraciones. Los comandos siguientes son instrucciones de aprovisionamiento, no se ejecutaron durante esta correccion.
 
-| Servicio | Puerto local | Estado |
+```sh
+docker compose -f compose.yaml up -d postgres mongo
+docker compose -f compose.yaml build
+docker compose -f compose.yaml run --rm --no-deps ms-identity php artisan identity:keys
+docker compose -f compose.yaml run --rm --no-deps ms-identity php artisan migrate
+docker compose -f compose.yaml run --rm --no-deps ms-identity php artisan db:seed
+docker compose -f compose.yaml run --rm --no-deps ms-agricultural php artisan migrate
+docker compose -f compose.yaml run --rm --no-deps ms-agricultural php artisan db:seed
+docker compose -f compose.yaml run --rm --no-deps ms-notifications node scripts/migrate.mjs
+docker compose -f compose.yaml up -d
+```
+
+El seed de Identity necesita IDENTITY_BOOTSTRAP_EMAIL e IDENTITY_BOOTSTRAP_PASSWORD para crear el administrador inicial; retirarlas despues. Agricultural carga catalogos. Notifications aplica su esquema explicitamente; su API no ejecuta DDL. IA ejecuta Alembic antes de Uvicorn. No se recrean bases ni se borran volumenes.
+
+Los workers agricultural-worker y notifications-worker arrancan por defecto. Identity guarda el par RSA en identity-keys; API y worker agricola comparten agricultural-evidence. Las claves privadas y evidencias se excluyen del contexto de construccion.
+
+Para correo de Identity configurar SMTP real y activar su worker:
+
+```sh
+docker compose -f compose.yaml --profile identity-mail up -d identity-mail-worker
+```
+
+Notifications mantiene NOTIFICATIONS_MAIL_ENABLED=false hasta configurar SMTP_URL y remitente; la bandeja sigue procesandose. Para Billing el modo predeterminado usa el temporizador del API. Si se prefiere un proceso independiente, cambiar BILLING_OUTBOX_TIMER_ENABLED=false en `.env` y entonces ejecutar:
+
+```sh
+docker compose -f compose.yaml --profile events up -d ms-billing billing-outbox-worker
+```
+
+PostgreSQL crea cuatro bases con usuarios separados al inicializar un volumen vacio. Cambiar `.env` no rota contrasenas en volumenes existentes: gestionar la rotacion por SQL. PostgreSQL y MongoDB no publican puertos al host. Los servidores PHP incluidos son para desarrollo.
+
+| Servicio | Puerto local | Estado directo |
 | --- | --- | --- |
-| Gateway | 4000 | `/health` |
-| Identity | 8001 | `/up`, `/api/v1/health`, `/api/v1/ready` |
-| Agricultural | 8002 | `/up`, `/api/v1/health`, `/api/v1/ready` |
-| Billing | 4001 | `/health`, `/ready` |
-| Notifications | 4002 | `/health` |
-| IA | 8003 | `/health`, `/ready` |
+| Gateway | 4000 | /health |
+| Identity | 8001 | /up, /api/v1/health, /api/v1/ready |
+| Agricultural | 8002 | /up, /api/v1/health, /api/v1/ready |
+| IA | 8003 | /health, /ready |
+| Billing | 4001 | /health, /ready |
+| Notifications | 4002 | /health, /ready |
 
-Laravel readiness solo comprueba conexión, no migraciones ni funcionalidad de negocio. Notifications liveness no implica que exista persistencia.
+Las aplicaciones se publican en 127.0.0.1. Health indica vida del proceso; readiness no sustituye verificar el flujo completo. Inferencia requiere credenciales reales de Roboflow/Cloudinary y cobros requieren Culqi. IDENTITY_BILLING_OFFERS inicia vacio: configurar ofertas aprobadas antes de comprar.
 
 ## Gateway
 
-`/api/v1/{identity|agricultural|billing|notifications|ai}/...` reenvía a `/api/v1/...` del servicio. Por ejemplo, `/api/v1/identity/health` llega a `/api/v1/health`. Propaga Authorization y X-API-Key del cliente, conserva cuerpos y respuestas en streaming, filtra cabeceras de salto e identidad no confiable y aplica un plazo de 120 segundos. No expone rutas `internal` por este proxy ni inyecta claves internas. No se ha implementado autenticación central, CORS para React, WebSocket, SSE ni controles de cuota.
+`/api/v1/{identity|agricultural|billing|notifications|ai}/...` reenvia a `/api/v1/...`. Para GET/HEAD de health y ready utiliza el prefijo real de cada servicio: Laravel `/api/v1`, Node/IA sin prefijo.
 
-## Workspaces y ejecución manual
+La bandeja usa `/api/v1/notifications`, `/api/v1/notifications/unread-count`, `/api/v1/notifications/read-all` y `/api/v1/notifications/{id}/read`. Las preferencias usan `/api/v1/notifications/preferences`. Las rutas anteriores con doble notifications y notification-preferences siguen disponibles.
 
-`npm ci` se ejecuta solo en la raíz y utiliza un único lockfile. Scripts: `npm run dev:gateway`, `npm run dev:billing`, `npm run dev:notifications`. Cada script carga el `.env` opcional del servicio. Los ejemplos de esos servicios usan direcciones del host; Compose usa DNS de contenedores. Para ejecución manual se necesitan bases accesibles desde el host y configurar las credenciales y URLs respectivas; no usar direcciones Docker fuera de su red.
-
-Los Dockerfiles Node reciben contexto raíz. El Dockerfile de Billing también requiere contexto raíz; no construirlo desde su carpeta como proyecto independiente.
+GATEWAY_CORS_ORIGINS acepta origenes HTTP(S) exactos separados por comas, sin rutas ni comodines. El valor local predeterminado es http://localhost:3000; la autenticacion usa Bearer, sin cookies CORS. Cada servicio valida credenciales, permisos y empresa. El Gateway conserva cuerpos y respuestas en streaming, aplica plazo de 120 segundos, bloquea rutas internal y elimina cabeceras de identidad y claves internas suministradas por clientes. No inyecta credenciales de servicio.
 
 ## Eventos y contratos
 
-Billing conserva `companyId` numérico. El schema de `payment.succeeded` refleja el payload actual. `AGROCLOUD_EVENT_URL` queda vacío hasta implementar un receptor idempotente en Identity que valide HMAC-SHA256 del cuerpo original (`X-AgroCloud-Signature`) y deduplique `X-Event-Id`. Mientras esté vacío, el outbox acumula pendientes sin enviarlos.
+Billing entrega payment.succeeded al receptor firmado e idempotente de Identity mediante AGROCLOUD_EVENT_URL. Ambos comparten AGROCLOUD_EVENT_SECRET. Agricultural entrega su outbox a Notifications mediante NOTIFICATIONS_EVENT_URL y AGRICULTURAL_EVENT_SECRET. Las URLs predeterminadas apuntan a los receptores existentes dentro de Docker.
 
-El proceso Billing usa su temporizador existente. En serverless (`VERCEL=1`) es obligatorio un programador externo que invoque `POST /api/v1/internal/outbox/dispatch` con X-API-Key. Un worker independiente todavía está pendiente. El Gateway bloquea esa ruta interna.
+Los productores de eventos Identity/Billing hacia Notifications siguen pendientes; no se cambia el destino Billing-Identity para simular un fanout. En serverless Billing necesita un programador externo para su despacho interno cuando no existe un proceso persistente.
 
-Los OpenAPI versionados cubren salud; Billing e IA mantienen sus contratos completos generados en `/openapi.json`. `notification.requested` es una propuesta, aún sin implementación. Ver `docs/architecture/overview.md` y `docs/database/data-ownership.md`.
+Los contratos completos de Identity, Agricultural y Notifications estan en `services/<servicio>/openapi.yaml`; Agricultural incluye `events.schema.json`. Los contratos compartidos de salud no reemplazan estos contratos. Billing e IA exponen contratos generados en `/openapi.json`.
 
-## Validación
+## Ejecucion manual y validacion
 
-Los workflows raíz realizan comprobaciones estáticas de Node, PHP, Python y contratos, sin tests ni compilaciones. Durante esta corrección no se ejecutaron tests, builds, contenedores ni migraciones. El arranque integrado queda sin verificar hasta que se autorice ejecutarlo y se completen los secretos.
+Node utiliza un solo lockfile: instalar desde la raiz con npm ci. Scripts: npm run dev:gateway, npm run dev:billing y npm run dev:notifications. Los `.env` locales de servicios usan direcciones del host; Compose utiliza el `.env` raiz y DNS de contenedores. Los Dockerfiles usan contexto raiz.
+
+Los workflows realizan comprobaciones estaticas. En esta correccion no se ejecutaron tests, compilaciones, contenedores ni migraciones. El arranque integrado, SMTP, pagos e inferencias requieren validacion posterior con las credenciales configuradas.
