@@ -61,7 +61,7 @@ export function configureProxy(app: NestExpressApplication): void {
     ) {
       throw new Error(`Invalid service origin: ${variable}`);
     }
-    app.use(`/api/v1/${service}`, (req: Request, res: Response) => {
+    app.use(`/api/v1/${service}`, async (req: Request, res: Response) => {
       // Do not expose backend worker/admin endpoints through the public gateway.
       const path = req.url.split('?')[0];
       let decoded: string;
@@ -130,6 +130,39 @@ export function configureProxy(app: NestExpressApplication): void {
           delete headers[name];
         }
       }
+      // Nunca reenviar credenciales de infraestructura aportadas por clientes.
+      delete headers['x-serverless-authorization'];
+
+      if (process.env.K_SERVICE) {
+        try {
+          const metadataUrl = new URL(
+            'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity'
+          );
+          metadataUrl.searchParams.set('audience', base.origin);
+
+          const metadata = await fetch(metadataUrl, {
+            headers: { 'Metadata-Flavor': 'Google' },
+            signal: AbortSignal.timeout(3000),
+          });
+
+          if (!metadata.ok) throw new Error('Metadata unavailable');
+
+          const token = (await metadata.text()).trim();
+          if (token.split('.').length !== 3) {
+            throw new Error('Invalid identity token');
+          }
+
+          headers['x-serverless-authorization'] = `Bearer ${token}`;
+        } catch {
+          if (!res.headersSent && !res.destroyed) {
+            proxyError(res, 503, 'IDENTITY_TOKEN_UNAVAILABLE', 'Service authentication unavailable');
+          }
+          return;
+        }
+      }
+
+      if (req.aborted || res.destroyed) return;
+
       const send = base.protocol === 'https:' ? httpsRequest : httpRequest;
       const upstream = send(
         {
