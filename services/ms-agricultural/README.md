@@ -62,3 +62,9 @@ El outbox entrega el cuerpo JSON exacto mediante POST a NOTIFICATIONS_EVENT_URL,
 Los endpoints publicos se publican como `/api/v1/agricultural/...` mediante el Gateway existente. Ver openapi.yaml para las rutas y cuerpos de solicitud. El contrato compartido fuera de este servicio queda intacto por el alcance pedido.
 
 Readiness comprueba conexion DB, tablas principales y configuracion basica de Identity; no ejecuta inferencias, entrega notificaciones ni comprueba todos los upstreams. En esta entrega no se ejecutaron tests, compilaciones, contenedores, migraciones, seeders, trabajos ni llamadas a servicios de negocio. La validacion es estatica y el funcionamiento integrado queda pendiente de esa ejecucion.
+
+## Originales en Cloudinary
+
+En Compose, configura `AGRICULTURAL_STORAGE_DRIVER=cloudinary`, `CLOUDINARY_URL` y `CLOUDINARY_CLOUD_NAME` en el .env raíz. El API y el worker comparten esta configuración. El prefijo `AGRICULTURAL_CLOUDINARY_PREFIX` permite separar entornos. Las imágenes se guardan como authenticated y se sirven a través del endpoint autorizado de evidencias. El worker valida el SHA-256 antes de enviar el original por multipart a IA.
+
+El comando `php artisan agricultural:evidences:migrate-cloudinary --dry-run` cuenta originales locales. Ejecutarlo sin la opción copia por lotes y actualiza la referencia solo después de verificar el SHA-256 remoto. Conserva los archivos locales y puede repetirse con el mismo prefijo. Haz una copia de PostgreSQL y del volumen antes de migrar. Conserva el volumen hasta verificar que no quedan referencias locales y que las evidencias migradas se pueden consultar y analizar. Las imágenes anotadas de IA mantienen su configuración de entrega actual.

@@ -3,31 +3,27 @@
 namespace App\Integrations\Ai;
 
 use App\Models\EvidenciaInspeccion;
+use App\Modules\Evidences\EvidenceStorage;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class AiAnalysisClient
 {
+    public function __construct(private readonly EvidenceStorage $storage) {}
+
     public function analyze(EvidenciaInspeccion $photo): array
     {
         $url = rtrim((string) config('agricultural.ai_url'), '/');
         $key = (string) config('agricultural.ai_key');
         abort_unless(strlen($key) >= 24 && filter_var($url, FILTER_VALIDATE_URL)
             && (str_starts_with($url, 'https://') || app()->environment('local', 'testing')), 503, 'Configure AI service.');
-        $stream = Storage::disk('agricultural')->readStream($photo->file_path);
-        if (! is_resource($stream)) {
-            throw new \RuntimeException('Evidence file unavailable.');
+        $bytes = $this->storage->read($photo->file_path);
+        if (! hash_equals($photo->image_sha256, hash('sha256', $bytes))) {
+            throw new \RuntimeException('Evidence input hash mismatch.');
         }
-        try {
-            $response = Http::withHeaders(['X-API-Key' => $key])->acceptJson()->withoutRedirecting()->connectTimeout(3)->timeout(105)
-                ->attach('file', $stream, 'evidence.'.pathinfo($photo->file_path, PATHINFO_EXTENSION), ['Content-Type' => $photo->mime])
-                ->post($url.'/api/v1/analyses/file');
-        } finally {
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }
+        $response = Http::withHeaders(['X-API-Key' => $key])->acceptJson()->withoutRedirecting()->connectTimeout(3)->timeout(105)
+            ->attach('file', $bytes, 'evidence.'.pathinfo($photo->file_path, PATHINFO_EXTENSION), ['Content-Type' => $photo->mime])
+            ->post($url.'/api/v1/analyses/file');
         if (! $response->successful() || strlen($response->body()) > 8000000 || ! is_array($response->json())) {
             throw new \RuntimeException('AI response unavailable or incompatible.');
         }

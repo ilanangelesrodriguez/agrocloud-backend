@@ -16,14 +16,12 @@ use App\Shared\Tenancy\CompanyContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EvidenceController extends Controller
 {
-    public function store(Request $request, int $inspection, InspectionWorkflow $workflow): AgriculturalResource
+    public function store(Request $request, int $inspection, InspectionWorkflow $workflow, EvidenceStorage $storage): AgriculturalResource
     {
         $data = $request->validate(['id_fruto' => ['required', 'integer', 'min:1'],
             'foto' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072']]);
@@ -31,10 +29,13 @@ class EvidenceController extends Controller
         $size = getimagesize($file->getRealPath());
         abort_unless($size && $size[0] * $size[1] <= 16000000, 422, 'Image exceeds the pixel limit.');
         Inspeccion::findOrFail($inspection);
-        $path = Storage::disk('agricultural')->putFileAs(app(CompanyContext::class)->company().'/'.$inspection, $file, Str::uuid().'.'.$file->extension());
-        abort_unless(is_string($path) && $path !== '', 503, 'Evidence storage unavailable.');
         try {
-            $record = $workflow->mutate($inspection, function (Inspeccion $record, Lote $lot) use ($file, $data, &$path): EvidenciaInspeccion {
+            $path = $storage->store($file, app(CompanyContext::class)->company(), $inspection);
+        } catch (\Exception) {
+            abort(503, 'Evidence storage unavailable.');
+        }
+        try {
+            $record = $workflow->mutate($inspection, function (Inspeccion $record, Lote $lot) use ($file, $data, $path): EvidenciaInspeccion {
                 $fruit = $record->muestreo->frutos()->findOrFail($data['id_fruto']);
                 $photo = EvidenciaInspeccion::create(['id_inspeccion' => $record->getKey(), 'id_fruto' => $fruit->getKey(),
                     'file_path' => $path, 'mime' => $file->getMimeType(), 'image_sha256' => hash_file('sha256', $file->getRealPath()),
@@ -44,8 +45,10 @@ class EvidenceController extends Controller
                 return $photo;
             });
         } catch (\Throwable $error) {
-            if ($path) {
-                Storage::disk('agricultural')->delete($path);
+            try {
+                $storage->delete($path);
+            } catch (\Exception) {
+                logger()->warning('Evidence upload cleanup failed.', ['reference' => $path]);
             }
             throw $error;
         }
@@ -53,12 +56,21 @@ class EvidenceController extends Controller
         return new AgriculturalResource($record);
     }
 
-    public function image(int $evidence): StreamedResponse
+    public function image(int $evidence, EvidenceStorage $storage): StreamedResponse
     {
         $photo = EvidenciaInspeccion::findOrFail($evidence);
-        abort_unless(Storage::disk('agricultural')->exists($photo->file_path), 404);
+        try {
+            $bytes = $storage->read($photo->file_path);
+        } catch (\Exception) {
+            abort(503, 'Evidence storage unavailable.');
+        }
+        abort_unless(hash_equals($photo->image_sha256, hash('sha256', $bytes)), 503, 'Evidence integrity check failed.');
 
-        return Storage::disk('agricultural')->response($photo->file_path, null, ['Content-Type' => $photo->mime, 'Cache-Control' => 'no-store']);
+        return response()->stream(fn () => print($bytes), 200, [
+            'Content-Type' => $photo->mime,
+            'Cache-Control' => 'no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     private function mutate(int $id, callable $callback): mixed
