@@ -1,74 +1,47 @@
-# Arquitectura: servicio EXCLUSIVO de inteligencia artificial
+# 🏗️ Arquitectura · AgroCloud AI
 
-## Límite de dominio
+**Un microservicio independiente dedicado a inferencias sobre imágenes.** No administra usuarios, empresas, lotes, inspecciones ni dictámenes.
 
-**El proyecto consume imágenes y produce predicciones técnicas.** No conoce, consulta,
-valida ni almacena datos de empresa, lote, recepción, muestreo, inspección, fruto,
-usuarios o dictámenes. El cliente llamante es dueño de sus datos de negocio.
+## Flujo
 
-No contiene PHP, controladores Laravel, claves de tabla ajena ni relaciones entre bases.
-
-## Capas
-
-```text
-                  Cliente backend HTTP / Swagger
-                               |
-                    Autenticación X-API-Key
-                               |
-                   FastAPI (api/routes/)
-                               |
-                 Application (analyze.py)
-                      /       |        \
-                     v        v         v
-          Domain/Vision    Roboflow    ImageStorage
-          cajas, calidad   adaptador    local/Cloudinary
-                     \       |         /
-                      +----Resultado---+
-                               |
-                 SQLAlchemy: historial TÉCNICO
-                               |
-                  SQLite local / PostgreSQL IA
+```mermaid
+flowchart LR
+    A[Backend Agricultural] -->|Imagen + clave de servicio| B[FastAPI]
+    B --> C[Validación y preparación]
+    C --> D[Roboflow / RF-DETR]
+    D --> E[Detecciones técnicas]
+    E --> F[Cloudinary]
+    E --> G[(PostgreSQL AI)]
+    F --> H[Respuesta JSON]
+    G --> H
+    H --> A
 ```
 
-- `api`: endpoints HTTP, contratos OpenAPI y Swagger.
-- `core`: configuración, seguridad y excepciones.
-- `domain`: estructuras y cálculos de detección y evaluación.
-- `application`: casos de uso que no dependen de un framework de negocio.
-- `infrastructure/inference`: proveedor Roboflow.
-- `infrastructure/storage`: imágenes anotadas y descarga segura.
-- `infrastructure/persistence`: registro de inferencias y predicciones, sin entidades agrícolas.
-- `resources`: resultados congelados de evaluación de RF-DETR Small V2.
+| Capa | Responsabilidad |
+| :-- | :-- |
+| `api/` | Rutas FastAPI y validaciones de entrada |
+| `core/` | Configuración, seguridad y excepciones |
+| `domain/` | Clases, cajas, confianza y resultados |
+| `application/` | Ejecución del análisis y estadísticas |
+| `infrastructure/inference/` | Comunicación con Roboflow |
+| `infrastructure/storage/` | Imágenes anotadas en Cloudinary |
+| `infrastructure/persistence/` | Registro técnico de inferencias |
 
-## Persistencia opcional del dominio técnico
+## Propiedad de datos
 
-Estas dos tablas guardan ÚNICAMENTE información generada por el servicio:
+La base de AI registra sus propias ejecuciones y objetos detectados mediante `ai_inference_runs` y `ai_detected_objects`.
 
-- `ai_inference_runs`: UUID `request_id`, huella SHA-256, versión del modelo,
-  estado, duración, tipo de error y JSON técnico devuelto.
-- `ai_detected_objects`: bounding boxes y puntuaciones detectadas.
+- **AI** conserva `request_id`, predicciones, tiempos y referencias técnicas.
+- **Agricultural** conserva la evidencia original, su relación con la empresa y las decisiones humanas.
+- No se comparten tablas ni claves foráneas entre ambos servicios.
 
-La BD aquí **no es** ni necesita ser la BD PostgreSQL de AgroCloud Laravel.
-En producción se recomienda una instancia/esquema aislado con credenciales propias.
-Para una instalación muy simple puede deshabilitarse la persistencia mediante una
-futura implementación de repositorio sin estado; esta versión la usa para estadísticas.
+**Persistencia:** SQLite puede utilizarse en desarrollo; **PostgreSQL es obligatorio en producción**. Las imágenes anotadas se almacenan en Cloudinary en producción.
 
-## Relación con el sistema principal
+## Límites
 
-1. El sistema consumidor obtiene su propia imagen según sus reglas de negocio.
-2. Envía solo el archivo binario o una URL Cloudinary autorizada al microservicio.
-3. RF-DETR devuelve `request_id`, versión, confianza, cajas, resumen, imagen anotada y tiempos.
-4. El consumidor almacena el `request_id` devuelto **en su propia tabla** junto con
-   los datos de negocio que solamente él conoce.
-5. La validación y la decisión final pertenecen al consumidor, no al microservicio.
+- La IA propone detecciones; **no emite dictámenes** ni sustituye al inspector.
+- Los endpoints de historial y estadísticas abarcan el servicio técnico completo: son para operadores/backend de confianza.
+- La integración en Cloud Run requiere **IAM (ID token)** y, además, **`X-API-Key`** en las operaciones de AI.
+- `/ready` valida la configuración y la base de datos, no el rendimiento ni la disponibilidad real de Roboflow.
 
-El `request_id` es propio del servicio IA y NO es una FK hacia otro sistema.
-
-## Consideraciones operativas
-
-- Los resultados experimentales publicados en Roboflow no son métricas de operación.
-- Una detección no constituye diagnóstico fitosanitario ni autoriza rechazar fruta.
-- El umbral es configurable: no asumir que 0.20 sea óptimo para todas las clases.
-- Se requiere HTTPS y API key solo entre servidores; nunca exponerla en frontend.
-- La lista de inferencias y los datos agregados son GLOBALes al servicio;
-  restringir su acceso a operadores internos confiables, no usuarios finales multiempresa.
-- Para miles de imágenes o múltiples réplicas, considerar cola de tareas y límites de uso globales.
+[← Índice AI](README.md) · [Despliegue](DESPLIEGUE.md)

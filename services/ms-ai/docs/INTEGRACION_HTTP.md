@@ -1,26 +1,47 @@
-# Integración HTTP sin acoplamiento entre sistemas
+# 🔗 Integración HTTP · Agricultural ↔ AI
 
-Este proyecto contiene solo Python. Para integrarlo desde cualquier backend:
+Agricultural es el **consumidor de negocio**; AI es el **proveedor de inferencias**. Se comunican por HTTP sin compartir bases de datos.
 
-1. El backend receptor ya conoce qué operación y fotografía está procesando.
-2. Envía la imagen al servicio IA con la clave privada del microservicio.
-3. Obtiene un JSON de predicciones, `request_id` y `model_id`.
-4. Guarda los resultados junto a su propia evidencia **en su propia base de datos**.
-5. Realiza confirmaciones, correcciones y cierre del proceso localmente.
+## Secuencia
 
-No incluir identificadores del proceso en `POST /api/v1/analyses/file` ni en `/url`.
+```mermaid
+sequenceDiagram
+    participant A as Agricultural
+    participant I as AI / FastAPI
+    participant R as Roboflow
+    A->>I: POST /api/v1/analyses/file + X-API-Key
+    I->>R: Ejecutar inferencia
+    R-->>I: Predicciones
+    I-->>A: request_id, detections, summary, annotated_image_url
+    Note over A: Asociar el resultado a su evidencia y solicitar revisión humana
+```
 
-**Correlación correcta**: el backend mantiene el vínculo (foto → respuesta JSON)
-y opcionalmente conserva `request_id` para auditoría técnica; el microservicio
-jamás comprueba claves foráneas del backend. El resultado no conoce su procedencia.
+1. Agricultural obtiene una fotografía autorizada de la evidencia.
+2. Envía el archivo a `POST /api/v1/analyses/file` o una URL de Cloudinary permitida a `/api/v1/analyses/url`.
+3. AI devuelve coordenadas, clases, puntuaciones y un `request_id` técnico.
+4. Agricultural registra los resultados en sus propias tablas y permite la revisión del inspector.
 
-**Si se desea una integración de transición** desde un cliente que llama al endpoint
-antiguo `/api/v1/detect`, hay que actualizar ese cliente para consumir
-`/api/v1/analyses/file` o `/api/v1/analyses/url` y mapear `detections`, `summary`
-y `annotated_image_url` en su lado. No se incluye compatibilidad legacy aquí,
-para no mantener lógica innecesaria.
+**No enviar** IDs de empresa, productor, lote o inspección a AI: el vínculo se mantiene en Agricultural.
 
-**Si se desea dashboard por empresa o lote**, las agregaciones se calculan en
-el backend del negocio a partir de sus evidencias y predicciones guardadas.
-El endpoint `/api/v1/stats/*` responde únicamente sobre el tráfico técnico
-del servicio de IA, no sobre empresas ni operaciones agrícolas.
+## Autenticación
+
+| Entorno | Requisito |
+| :-- | :-- |
+| Local | `X-API-Key` compartida por los backends |
+| Cloud Run privado | ID token de Google para invocar AI **más** `X-API-Key` para autorizar la operación |
+
+La clave privada nunca se entrega al frontend. Si se utiliza `Authorization` para la identidad del cliente, mantener separadas las credenciales de infraestructura mediante `X-Serverless-Authorization`.
+
+## Contrato de respuesta
+
+- `detections`: clase, confianza y caja delimitadora.
+- `summary`: recuento y resumen técnico.
+- `request_id`: identificador propio de la inferencia.
+- `annotated_image_url`: imagen anotada, cuando esté disponible.
+- `requires_human_review`: indica que requiere revisión de una persona.
+
+**No existe** compatibilidad con la ruta anterior `/api/v1/detect`. La aplicación consumidora debe utilizar `/api/v1/analyses/file` o `/url`.
+
+> Los endpoints `/api/v1/stats/*` no ofrecen estadísticas por empresa o lote. Esos reportes deben calcularse en Agricultural.
+
+[← Índice AI](README.md) · [API y Swagger](API_Y_SWAGGER.md)

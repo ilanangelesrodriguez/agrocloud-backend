@@ -1,72 +1,75 @@
-# Ejecución y despliegue Cloud
+# ☁️ Despliegue · AgroCloud AI
+
+**Python 3.12 · FastAPI · PostgreSQL · Roboflow · Cloudinary**
 
 ## Entornos
 
-| Modo | Base de datos | Imagen anotada | Ajustes |
-|---|---|---|---|
-| Local | SQLite | local | `APP_ENV=development`, `AUTO_CREATE_TABLES=true` |
-| Testing | SQLite temporal | local | `APP_ENV=test`, proveedor simulado |
-| Cloud | PostgreSQL independiente para registros técnicos IA | Cloudinary | `APP_ENV=production`, `AUTO_CREATE_TABLES=false` |
+| Entorno | Base de datos | Configuración |
+| :-- | :-- | :-- |
+| Desarrollo | SQLite o PostgreSQL | `APP_ENV=development` |
+| Pruebas | Base aislada | `APP_ENV=test` |
+| Producción | PostgreSQL independiente | `APP_ENV=production`, `AUTO_CREATE_TABLES=false` |
 
-## Preparar credenciales sin incluirlas en el repositorio
+## Configuración
 
-1. Crear un `.env` basado en `.env.example`.
-2. `SERVICE_API_KEY`: generar una clave privada aleatoria larga y compartirla **solo** con el backend que consume la API.
-3. `ROBOFLOW_API_KEY`: clave del workspace con permiso de inferencia al modelo `agrocloud-plagas-de-palta/2`.
-4. `DATABASE_URL`: cadena PostgreSQL **exclusiva del servicio IA**, no la BD de AgroCloud; `postgresql+psycopg://...` con TLS según proveedor.
-5. `CLOUDINARY_URL`, `CLOUDINARY_CLOUD_NAME`: almacenamiento de fotos anotadas.
-6. `ANNOTATED_STORAGE=cloudinary` si el consumidor necesita URL de imagen anotada.
-7. `APP_ENV=production`, `AUTO_CREATE_TABLES=false`.
+Utiliza [`.env.example`](../.env.example). Las variables esenciales son `DATABASE_URL`, `SERVICE_API_KEY`, `ROBOFLOW_API_KEY`, `CLOUDINARY_URL` y `CLOUDINARY_CLOUD_NAME`.
 
-Nunca colocar credenciales en Swagger, pantallazos, archivos README, Dockerfile, Git o URLs visibles al navegador.
+No subas secretos al repositorio. En Google Cloud, utilízalos desde **Secret Manager**, con permisos para la cuenta de servicio de AI.
 
 ## Migraciones
 
-Con variables de producción cargadas en el entorno y acceso a PostgreSQL:
+AI usa **Alembic**. Aplica sus migraciones con una conexión autorizada antes de iniciar una versión que dependa de cambios en el esquema:
 
 ```bash
+# Desde services/ms-ai, con el entorno configurado
 pip install -e '.[postgres]'
 alembic upgrade head
 ```
 
-**Nota:** el contenedor ejecuta el servidor, no ejecuta migraciones automáticamente. Aplicarlas como paso de despliegue independiente antes de iniciar. `AUTO_CREATE_TABLES=false` evita modificaciones implícitas de esquema en producción.
+El contenedor **no ejecuta migraciones automáticamente**. `AUTO_CREATE_TABLES=false` impide crear tablas de forma implícita en producción.
 
-## Docker
-
-```bash
-docker build -t agrocloud-ai-rfdetr:2 .
-docker run --rm --env-file .env -p 8000:8000 agrocloud-ai-rfdetr:2
-```
-
-Para desarrollo local:
+## Docker local
 
 ```bash
-docker compose up --build
+# Desde services/ms-ai
+docker build -t agrocloud-ai:local .
+docker run --rm --env-file .env -p 8000:8000 agrocloud-ai:local
 ```
 
-Swagger: `https://TU-DOMINIO/docs`. Salud: `/health`. Ready: `/ready`.
+Para todo el monorepo utiliza el [`compose.yaml`](../../../compose.yaml) de la raíz y sigue la [guía local](../../../docs/local-development.md).
 
-## Consideraciones de rendimiento
+## Cloud Run
 
-- RF-DETR se ejecuta en Roboflow hospedado; la latencia de red no equivale a los 9.5 ms publicados en la evaluación.
-- Con `--workers 1` el semáforo limita concurrencia del proceso. Si despliegas más réplicas, controlar límite global a nivel de proveedor o gateway.
-- El almacenamiento en SQLite y los percentiles en memoria sirven para pruebas, no para grandes escalas.
-- Asegurar timeout HTTP entre el backend y el microservicio mayor al de inferencia, o implementar colas antes de producción de alto volumen.
-- Para procesamiento sostenido, registrar costos por llamada, límites, alertas y políticas de retención.
-- Habilitar CORS sólo si se demuestra necesario; el diseño correcto usa backend-a-backend.
-- Activar HTTPS mediante proxy/ingress, proteger `/docs` y rotar claves por política.
+El servicio existente es `agrocloud-ai` en `us-central1`. Si cambias su código, publica **una imagen nueva**; no recrees la base de datos ni sobrescribas sus secretos.
 
-## Verificación después de desplegar
+```bash
+# Desde la raíz del monorepo
+export PROJECT_ID="project-bd682e97-0f13-4d07-a8a"
+export REGION="us-central1"
+export REGISTRY="${REGION}-docker.pkg.dev/${PROJECT_ID}/agrocloud"
+export TAG="$(git rev-parse --short=12 HEAD)"
 
-1. `GET /health`: proceso responde.
-2. `GET /ready`: BD y configuración presente; **no comprueba Roboflow real**.
-3. Abrir Swagger, autorizar `X-API-Key`, verificar `/api/v1/model`.
-4. Con imagen de prueba autorizada realizar `POST /api/v1/analyses/file` y comprobar que regrese el modelo V2.
-5. Consultar `/api/v1/inferences/{request_id}` y `/api/v1/stats/overview`.
-6. Comprobar imagen anotada Cloudinary y latencia extremo a extremo; las validaciones humanas ocurren fuera del servicio.
+gcloud builds submit services/ms-ai \
+  --tag="${REGISTRY}/ai:${TAG}" \
+  --region="$REGION" --project="$PROJECT_ID"
 
-## Advertencias
+gcloud run deploy agrocloud-ai \
+  --image="${REGISTRY}/ai:${TAG}" \
+  --region="$REGION" --project="$PROJECT_ID" \
+  --no-allow-unauthenticated
+```
 
-- Ninguna API puede garantizar que 78.44% de mAP@50 del Test se repita en campo sin un dataset independiente.
-- CHINCHE carece de instancias en el Test consultado: su rendimiento real no está demostrado.
-- El `evaluation_v2.json` es una referencia verificable congelada; actualizarlo sólo tras evaluación formal de una nueva versión, con evidencia y fecha.
+Este despliegue reutiliza la configuración del servicio existente. Verifica previamente que la cuenta de servicio, variables y secretos sigan configurados. **Cloud Run privado puede responder `403` si se visita directamente sin autorización IAM.**
+
+## Verificación
+
+```bash
+gcloud run services logs read agrocloud-ai --region=us-central1 --limit=30
+gcloud run services proxy agrocloud-ai --region=us-central1 --port=8080
+```
+
+Con el proxy activo, abre `/health`, `/ready` y `/docs` en la vista previa del puerto 8080. Después ejecuta una **inferencia real de prueba** para validar Roboflow, Cloudinary y los resultados.
+
+> `/ready` no prueba inferencia. Los límites, costos, latencias y métricas de Test deben evaluarse por separado.
+
+[← Índice AI](README.md) · [Cloud Run (guía general)](../../../docs/deployment/cloud-run.md)
