@@ -26,17 +26,38 @@ export class IdentityClient {
   ): Promise<Record<string, unknown>> {
     let response: Response;
     try {
+      const headers: Record<string, string> = {
+        Accept: 'application/json',
+        'X-Service-Key': this.settings.identityKey,
+        ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
+      };
+
+      if (process.env.K_SERVICE) {
+        const metadataUrl = new URL(
+          'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity',
+        );
+        metadataUrl.searchParams.set('audience', this.settings.identityUrl);
+
+        const metadata = await fetch(metadataUrl, {
+          headers: { 'Metadata-Flavor': 'Google' },
+          signal: AbortSignal.timeout(3000),
+        });
+        if (!metadata.ok)
+          throw new Error('Cloud Run identity token unavailable');
+
+        const idToken = (await metadata.text()).trim();
+        if (idToken.split('.').length !== 3)
+          throw new Error('Invalid Cloud Run identity token');
+        headers['X-Serverless-Authorization'] = `Bearer ${idToken}`;
+      }
+
       response = await fetch(
         this.settings.identityUrl + '/api/v1/internal' + path,
         {
           method: bearer ? 'POST' : 'GET',
           redirect: 'error',
           signal: AbortSignal.timeout(8000),
-          headers: {
-            Accept: 'application/json',
-            'X-Service-Key': this.settings.identityKey,
-            ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
-          },
+          headers,
         },
       );
     } catch {
