@@ -1,90 +1,96 @@
-# AgroCloud Backend
+<div align="center">
 
-Monorepo con Gateway NestJS, Identity y Agricultural Laravel, Notifications y Billing NestJS, e IA FastAPI.
+# 🌱 AgroCloud Backend
 
-## Estado actual
+**Gestión de calidad agrícola y poscosecha mediante microservicios.**
 
-Identity implementa autenticacion, sesiones, empresas, permisos, suscripciones, cupos y recepcion firmada de pagos. Agricultural implementa el dominio agricola, evidencias privadas, trabajos de IA y outbox. Notifications implementa bandeja, preferencias, deduplicacion y entregas. Billing conserva su integracion Culqi y outbox; IA utiliza Roboflow y Cloudinary.
+[![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)](https://laravel.com/)
+[![NestJS](https://img.shields.io/badge/NestJS-12-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Cloud Run](https://img.shields.io/badge/Google_Cloud-Run-4285F4?logo=googlecloud&logoColor=white)](https://cloud.google.com/run)
 
-El archivo `compose.yaml` es la entrada oficial del entorno local: incluye Dockerfiles especificos, configuracion interna, workers y almacenamiento persistente. Los tres Compose de servicio se conservan como overrides opcionales; no son necesarios para el arranque normal. Los comandos siguientes especifican `-f compose.yaml` para evitar una variable COMPOSE_FILE antigua.
+**[Documentación](docs/README.md)** · **[Arquitectura](docs/architecture/overview.md)** · **[Guía local](docs/local-development.md)** · **[Despliegue](docs/deployment/cloud-run.md)**
 
-## Preparacion local
+</div>
 
-Requisitos: Docker Compose v2. Para ejecucion manual: Node 22, PHP 8.4 con PDO PostgreSQL y Composer 2, Python 3.12.
+---
 
-1. Copiar `.env.example` a `.env` y completar claves y contrasenas independientes. IA y Notifications interpolan contrasenas en URLs: usar valores alfanumericos aleatorios o adaptar las URLs con escape correcto. Generar dos APP_KEY Laravel diferentes, con 32 bytes aleatorios en base64. Las claves internas y secretos de eventos requieren al menos 32 caracteres.
-2. Revisar y respaldar las bases existentes antes de aplicar migraciones. Los comandos siguientes son instrucciones de aprovisionamiento, no se ejecutaron durante esta correccion.
+## ¿Qué es AgroCloud?
 
-```sh
+AgroCloud es un backend modular para administrar **empresas, productores, lotes, muestreos, inspecciones y dictámenes de calidad**. Integra análisis de imágenes mediante IA, notificaciones y gestión de suscripciones.
+
+Cada microservicio tiene una responsabilidad y sus propios datos. **Gateway** es el punto de entrada para los clientes.
+
+## Microservicios
+
+| Servicio | Tecnología | Responsabilidad |
+| :-- | :-- | :-- |
+| **Gateway** | NestJS | Enrutamiento, Swagger y entrada HTTP |
+| **Identity** | Laravel | Autenticación, empresas, usuarios, permisos y planes |
+| **Agricultural** | Laravel | Productores, lotes, muestreos, inspecciones y calidad |
+| **Notifications** | NestJS | Bandeja, preferencias y eventos |
+| **Billing** | NestJS | Órdenes, pagos, reembolsos y Culqi |
+| **AI** | FastAPI | Análisis técnico de imágenes con Roboflow |
+
+**Persistencia:** PostgreSQL para Identity, Agricultural, Notifications y AI; MongoDB para Billing. Las imágenes y evidencias se integran con Cloudinary según su servicio.
+
+## Arquitectura
+
+```mermaid
+flowchart LR
+    C["Frontend / Swagger"] --> G["Gateway"]
+    G --> I["Identity"]
+    G --> A["Agricultural"]
+    G --> N["Notifications"]
+    G --> B["Billing"]
+    G --> AI["AI"]
+    A -. "Usuarios y cupos" .-> I
+    A -. "Inferencias" .-> AI
+    A -. "Eventos" .-> N
+    B -. "Pagos confirmados" .-> I
+```
+
+> Los servicios internos están diseñados para permanecer privados; Gateway gestiona el acceso externo. La autorización del usuario se valida en el microservicio correspondiente.
+
+## Inicio rápido en local
+
+**Requisito:** Docker Compose v2.
+
+```bash
+cp .env.example .env
+# Completa las variables y los secretos requeridos en .env.
 docker compose -f compose.yaml up -d postgres mongo
 docker compose -f compose.yaml build
-docker compose -f compose.yaml run --rm --no-deps ms-identity php artisan identity:keys
-docker compose -f compose.yaml run --rm --no-deps ms-identity php artisan migrate
-docker compose -f compose.yaml run --rm --no-deps ms-identity php artisan db:seed
-docker compose -f compose.yaml run --rm --no-deps ms-agricultural php artisan migrate
-docker compose -f compose.yaml run --rm --no-deps ms-agricultural php artisan db:seed
-docker compose -f compose.yaml run --rm --no-deps ms-notifications node scripts/migrate.mjs
-docker compose -f compose.yaml up -d
 ```
 
-El seed de Identity necesita IDENTITY_BOOTSTRAP_EMAIL e IDENTITY_BOOTSTRAP_PASSWORD para crear el administrador inicial; retirarlas despues. Agricultural carga catalogos. Notifications aplica su esquema explicitamente; su API no ejecuta DDL. IA ejecuta Alembic antes de Uvicorn. No se recrean bases ni se borran volumenes.
+Antes de iniciar las APIs y workers, genera las claves RSA y aplica las migraciones indicadas en la **[guía de desarrollo local](docs/local-development.md)**.
 
-Los workers agricultural-worker y notifications-worker arrancan por defecto. Identity guarda el par RSA en identity-keys; API y worker agricola comparten agricultural-evidence. Las claves privadas y evidencias se excluyen del contexto de construccion.
+## API y Swagger
 
-Para correo de Identity configurar SMTP real y activar su worker:
+| Ruta de Gateway | Uso |
+| :-- | :-- |
+| `GET /` | Información de servicios |
+| `GET /health` | Salud de Gateway |
+| `GET /docs` | Swagger UI interactivo |
+| `GET /openapi.json` | Contrato OpenAPI agregado |
+| `/api/v1/{servicio}/...` | Acceso a las rutas del microservicio |
 
-```sh
-docker compose -f compose.yaml --profile identity-mail up -d identity-mail-worker
-```
+Swagger documenta las operaciones orientadas a clientes. Para probar rutas protegidas, inicia sesión en **Identity** y utiliza **Authorize** con tu JWT. Las operaciones internas y las claves de servicio no deben exponerse al navegador.
 
-Notifications mantiene NOTIFICATIONS_MAIL_ENABLED=false hasta configurar SMTP_URL y remitente; la bandeja sigue procesandose. Para Billing el modo predeterminado usa el temporizador del API. Si se prefiere un proceso independiente, cambiar BILLING_OUTBOX_TIMER_ENABLED=false en `.env` y entonces ejecutar:
+**[Estándar de la API](docs/architecture/api-standard.md)** · **[Contratos OpenAPI](packages/contracts/openapi/)**
 
-```sh
-docker compose -f compose.yaml --profile events up -d ms-billing billing-outbox-worker
-```
+## Estado del proyecto
 
-PostgreSQL crea cuatro bases con usuarios separados al inicializar un volumen vacio. Cambiar `.env` no rota contrasenas en volumenes existentes: gestionar la rotacion por SQL. PostgreSQL y MongoDB no publican puertos al host. Los servidores PHP incluidos son para desarrollo.
+- ✅ Seis servicios desplegados en **Cloud Run** para pruebas de integración.
+- ✅ Gateway y endpoints de salud verificados.
+- 🧪 En validación: autenticación entre servicios, operaciones de negocio, workers y flujos completos de IA/pagos.
 
-| Servicio | Puerto local | Estado directo |
-| --- | --- | --- |
-| Gateway | 4000 | /health |
-| Identity | 8001 | /up, /api/v1/health, /api/v1/ready |
-| Agricultural | 8002 | /up, /api/v1/health, /api/v1/ready |
-| IA | 8003 | /health, /ready |
-| Billing | 4001 | /health, /ready |
-| Notifications | 4002 | /health, /ready |
+**Desplegado no significa validado para producción.** Consulta [Cloud Run](docs/deployment/cloud-run.md) para los controles pendientes.
 
-Las aplicaciones se publican en 127.0.0.1. Health indica vida del proceso; readiness no sustituye verificar el flujo completo. Inferencia requiere credenciales reales de Roboflow/Cloudinary y cobros requieren Culqi. IDENTITY_BILLING_OFFERS inicia vacio: configurar ofertas aprobadas antes de comprar.
+## Documentación
 
-## Gateway
+Consulta el **[índice de documentación](docs/README.md)** para arquitectura, bases de datos, desarrollo local y despliegue.
 
-El Gateway publica Swagger UI interactivo en `/docs` y el contrato agregado en `/openapi.json`, disponibles en cualquier entorno. La raíz enlaza ambos y presenta las rutas de los cinco servicios.
+---
 
-La raíz `GET /` devuelve un catálogo JSON de los cinco microservicios con su descripción, prefijo, rutas de ejemplo y enlaces de salud. Identity, Agricultural, Notifications, Billing e IA tienen su propio índice al acceder directamente a su puerto.
-
-Identity y Agricultural sirven Swagger UI en `/docs` y el contrato en `/openapi.json` con `APP_ENV=local`. Notifications sirve las mismas rutas con `NODE_ENV=development`. Compose local configura esos entornos. Estas tres interfaces cargan Swagger UI desde jsDelivr y muestran las operaciones para clientes. Los contratos versionados conservan también las operaciones internas. Billing e IA mantienen su configuración de documentación y requieren sus claves de servicio en las rutas protegidas.
-
-Para habilitar **Try it out** en Compose local, poner en `true` la opción del servicio en el `.env` raíz (`IDENTITY_SWAGGER_TRY_IT_OUT`, `AGRICULTURAL_SWAGGER_TRY_IT_OUT` o `NOTIFICATIONS_SWAGGER_TRY_IT_OUT`) y recrear el contenedor correspondiente. Para ejecución directa, usar `SWAGGER_TRY_IT_OUT=true` en el entorno del servicio. Usar el botón **Authorize** con un token de desarrollo para las rutas que requieren Bearer. Mantener privados los puertos reenviados y las claves de servicio fuera del frontend.
-
-Compose lee el `.env` raíz y mapea sus variables a cada contenedor. Los `.env` de servicio corresponden a la ejecución independiente. Un cambio de entorno requiere recrear el contenedor afectado. Los cambios en los contratos, las plantillas de Swagger o el código requieren reconstruir su imagen. Las bases y sus migraciones son independientes de estos cambios.
-
-
-`/api/v1/{identity|agricultural|billing|notifications|ai}/...` reenvia a `/api/v1/...`. Para GET/HEAD de health y ready utiliza el prefijo real de cada servicio: Laravel `/api/v1`, Node/IA sin prefijo.
-
-La bandeja usa `/api/v1/notifications`, `/api/v1/notifications/unread-count`, `/api/v1/notifications/read-all` y `/api/v1/notifications/{id}/read`. Las preferencias usan `/api/v1/notifications/preferences`. Las rutas anteriores con doble notifications y notification-preferences siguen disponibles.
-
-GATEWAY_CORS_ORIGINS acepta origenes HTTP(S) exactos separados por comas, sin rutas ni comodines. El valor local predeterminado es http://localhost:3000; la autenticacion usa Bearer, sin cookies CORS. Cada servicio valida credenciales, permisos y empresa. El Gateway conserva cuerpos y respuestas en streaming, aplica plazo de 120 segundos, bloquea rutas internal y elimina cabeceras de identidad y claves internas suministradas por clientes. No inyecta credenciales de servicio.
-
-## Eventos y contratos
-
-Billing entrega payment.succeeded al receptor firmado e idempotente de Identity mediante AGROCLOUD_EVENT_URL. Ambos comparten AGROCLOUD_EVENT_SECRET. Agricultural entrega su outbox a Notifications mediante NOTIFICATIONS_EVENT_URL y AGRICULTURAL_EVENT_SECRET. Las URLs predeterminadas apuntan a los receptores existentes dentro de Docker.
-
-Los productores de eventos Identity/Billing hacia Notifications siguen pendientes; no se cambia el destino Billing-Identity para simular un fanout. En serverless Billing necesita un programador externo para su despacho interno cuando no existe un proceso persistente.
-
-Los contratos completos de Identity, Agricultural y Notifications estan en `services/<servicio>/openapi.yaml`; Agricultural incluye `events.schema.json`. Los tres contratos se sincronizan con `packages/contracts/openapi`. Las convenciones para operaciones nuevas y la transición de v1 están en [Estándar API](docs/architecture/api-standard.md). Billing e IA exponen contratos generados en `/openapi.json`.
-
-## Ejecucion manual y validacion
-
-Node utiliza un solo lockfile: instalar desde la raiz con npm ci. Scripts: npm run dev:gateway, npm run dev:billing y npm run dev:notifications. Los `.env` locales de servicios usan direcciones del host; Compose utiliza el `.env` raiz y DNS de contenedores. Los Dockerfiles usan contexto raiz.
-
-Los workflows realizan comprobaciones estaticas. En esta correccion no se ejecutaron tests, compilaciones, contenedores ni migraciones. El arranque integrado, SMTP, pagos e inferencias requieren validacion posterior con las credenciales configuradas.
+<div align="center"><sub>AgroCloud · Backend de servicios · 2026</sub></div>

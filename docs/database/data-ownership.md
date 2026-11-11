@@ -1,17 +1,25 @@
-# Propiedad de datos
+# 🗄️ Propiedad de datos
 
-| Servicio | Base / usuario local | Propiedad |
-| --- | --- | --- |
-| Identity | identity_db / identity_app | Usuarios, empresas, credenciales, sesiones, permisos, suscripciones, cupos y eventos de pagos recibidos |
-| Agricultural | agricultural_db / agricultural_app | Productores, lotes, recepciones, muestreos, inspecciones, evidencias, dictamenes, incidencias, trabajos IA y outbox |
-| IA | ai_db / ai_app | Ejecuciones y detecciones tecnicas; el dictamen pertenece a Agricultural |
-| Billing | MongoDB agrocloud_billing | Ordenes, pagos, reembolsos, webhooks y outbox |
-| Notifications | notifications_db / notifications_app | Eventos recibidos, bandeja, preferencias, entregas y reintentos |
+Cada microservicio es **responsable de sus propias tablas y operaciones**. Las referencias entre dominios se resuelven mediante identificadores y APIs, no mediante claves foráneas entre bases.
 
-Cada aplicacion usa su usuario, nunca el administrador PostgreSQL. El script inicial revoca acceso publico a cada base. Las relaciones externas usan IDs y contratos HTTP/eventos; no se crean consultas cruzadas ni claves foraneas entre servicios.
+| Servicio | Persistencia | Datos que administra |
+| :-- | :-- | :-- |
+| **Identity** | PostgreSQL (`identity_db`) | Empresas, usuarios, sesiones, roles, planes y cupos |
+| **Agricultural** | PostgreSQL (`agricultural_db`) | Productores, lotes, muestras, inspecciones, evidencias y dictámenes |
+| **Notifications** | PostgreSQL (`notifications_db`) | Notificaciones, preferencias, eventos y entregas |
+| **AI** | PostgreSQL (`ai_db`) | Inferencias y detecciones técnicas |
+| **Billing** | MongoDB (`agrocloud_billing`) | Órdenes, pagos, webhooks, reembolsos y outbox |
 
-Identity es la autoridad de usuarios y pertenencia a empresas. Agricultural y Notifications validan actores y referencias mediante Identity, sin mantener credenciales propias de usuarios. Billing conserva companyId numerico compatible con el contrato de Identity.
+En Cloud Run, las bases PostgreSQL se conectan a **Neon** y Billing utiliza **MongoDB Atlas**.
 
-identity-keys conserva las claves RSA privadas de Identity. agricultural-evidence conserva los originales privados y se comparte con el worker agricola. No guardar estos datos en Git ni en imagenes Docker. Las copias de seguridad deben incluir bases y volumenes persistentes.
+## Reglas de diseño
 
-Migraciones y catalogos se aprovisionan explicitamente antes de arrancar workers; no se borran tablas existentes para reconciliar configuraciones. Cambiar contrasenas del entorno no modifica usuarios PostgreSQL inicializados previamente.
+- **Identity** es la fuente de usuarios y pertenencia a empresas.
+- **Agricultural** conserva las decisiones humanas; AI solo entrega resultados técnicos.
+- **Billing** registra pagos; Identity aplica las suscripciones mediante eventos verificados.
+- Las migraciones pertenecen a cada servicio: **Laravel**, migraciones de **Notifications** y **Alembic** para AI.
+- Las imágenes y claves RSA requieren almacenamiento privado; no deben incluirse en Git ni en imágenes Docker.
+
+> Antes de migrar, verifica el destino y realiza respaldos. No ejecutes migraciones destructivas para corregir errores de configuración.
+
+[← Documentación](../README.md)

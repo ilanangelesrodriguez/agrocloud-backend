@@ -1,13 +1,50 @@
-# Arquitectura actual
+# 🏗️ Arquitectura
 
-El Gateway recibe trafico en 4000 y enruta a cinco APIs. CORS usa una lista explicita de origenes. Cada servicio valida autenticacion y autorizacion; el Gateway bloquea rutas internas y elimina cabeceras de identidad no confiables.
+AgroCloud utiliza **seis servicios independientes**, conectados mediante HTTP y eventos. Gateway recibe las peticiones externas; los demás servicios conservan la lógica y los datos de cada dominio.
 
-Identity administra usuarios, empresas, sesiones, permisos, suscripciones y cupos sobre PostgreSQL. Agricultural administra productores, lotes, inspecciones, evidencias y dictamenes sobre su propia base. Usa Identity para identidad/cupos e IA para inferencia; su worker procesa trabajos y outbox. Notifications persiste eventos deduplicados, bandeja, preferencias y entregas; su worker consulta destinatarios en Identity y entrega correo cuando SMTP esta habilitado.
+```mermaid
+flowchart TB
+    UI["Frontend / Swagger"] --> GW["API Gateway"]
+    GW --> ID["Identity · Laravel"]
+    GW --> AG["Agricultural · Laravel"]
+    GW --> NO["Notifications · NestJS"]
+    GW --> BI["Billing · NestJS"]
+    GW --> IA["AI · FastAPI"]
 
-Billing conserva ordenes, pagos, reembolsos, webhooks y outbox en MongoDB. Su outbox envia eventos firmados a Identity para aplicar derechos sobre ordenes conocidas. Agricultural envia eventos firmados a Notifications. No existe fanout automatico de eventos Identity/Billing hacia Notifications. IA persiste ejecuciones tecnicas con PostgreSQL/Alembic y usa Roboflow/Cloudinary.
+    AG -. "Identidad / cupos" .-> ID
+    AG -. "Inferencia" .-> IA
+    AG -. "Eventos firmados" .-> NO
+    BI -. "Pago confirmado" .-> ID
 
-compose.yaml es la entrada local completa, con Dockerfiles especificos de Identity, Agricultural y Notifications. Los workers agricola y de notificaciones arrancan por defecto. El worker de correo Identity usa perfil identity-mail; Billing usa su temporizador o un worker bajo perfil events, desactivando antes el temporizador del API. No hay broker ni Redis: los trabajos y outboxes se persisten en las bases de sus propietarios.
+    ID --> PG1[(PostgreSQL)]
+    AG --> PG2[(PostgreSQL)]
+    NO --> PG3[(PostgreSQL)]
+    IA --> PG4[(PostgreSQL)]
+    BI --> MG[(MongoDB)]
+```
 
-Las claves RSA de Identity y evidencias agricolas usan volumenes persistentes. Las bases no publican puertos al host y las APIs se publican en loopback. Las migraciones Laravel/Notifications son pasos explicitos previos al arranque de workers; IA aplica Alembic al iniciar. Ver README raiz para el orden de aprovisionamiento.
+## Responsabilidades
 
-La configuracion integra contratos existentes; no acredita arranque, migraciones ni flujos de negocio ejecutados. Produccion requiere servidores y supervision adecuados, secretos, HTTPS y validacion operativa.
+| Servicio | Función principal |
+| :-- | :-- |
+| **Gateway** | Proxy HTTP, CORS y Swagger centralizado |
+| **Identity** | Usuarios, empresas, sesiones, permisos, suscripciones y cupos |
+| **Agricultural** | Proceso agrícola: recepción → lote → muestreo → inspección → dictamen |
+| **AI** | Inferencias técnicas, detecciones y resultados de imágenes |
+| **Notifications** | Eventos, bandeja, preferencias y entregas |
+| **Billing** | Órdenes, cargos Culqi, conciliación y reembolsos |
+
+## Comunicación y seguridad
+
+- **Usuario → Gateway:** JWT Bearer emitido por Identity cuando la operación lo requiere.
+- **Servicio → servicio privado:** permisos IAM y token de identidad de Cloud Run; las credenciales propias de aplicación se validan por separado.
+- **Eventos:** firmas HMAC e idempotencia para evitar duplicados.
+- **Datos:** cada servicio administra su base; no existen claves foráneas entre microservicios.
+
+Los workers de Agricultural y Notifications procesan tareas persistidas. Billing puede despachar su outbox mediante un proceso o invocación programada. No se utiliza un broker central.
+
+## Estado de despliegue
+
+El entorno de **Google Cloud Run** dispone de los seis servicios y verificaciones básicas de salud. Siguen pendientes las pruebas completas de autorización, procesamiento asíncrono, pagos e IA. Consulta [Despliegue](../deployment/cloud-run.md).
+
+[← Documentación](../README.md)
