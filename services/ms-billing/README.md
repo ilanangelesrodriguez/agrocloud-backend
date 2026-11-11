@@ -1,94 +1,73 @@
-# AgroCloud Billing API
+<div align="center">
 
-API privada de pagos para AgroCloud, desarrollada con NestJS, TypeScript y MongoDB. Registra órdenes, procesa cargos con Culqi y envía eventos firmados a Laravel.
+# 💳 AgroCloud Billing
 
-## Inicio rápido
+**Órdenes, pagos y conciliación con Culqi para los planes de AgroCloud.**
 
-Requiere Node.js 22 y una instancia de MongoDB disponible.
+![NestJS](https://img.shields.io/badge/NestJS-12-E0234E?style=flat-square&logo=nestjs&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-22-339933?style=flat-square&logo=nodedotjs&logoColor=white)
+![MongoDB](https://img.shields.io/badge/Base_de_datos-MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white)
+![Culqi](https://img.shields.io/badge/Pagos-Culqi-2563EB?style=flat-square)
 
-```powershell
+[**Servicios**](../README.md) · [**Gateway**](../../gateway/README.md) · [**Arquitectura**](../../docs/architecture/overview.md)
+
+</div>
+
+---
+
+## 💰 Responsabilidades
+
+- Crear órdenes y registrar pagos en **MongoDB**.
+- Procesar cargos mediante Culqi y consultar su estado.
+- Conciliar pagos inciertos y gestionar solicitudes de reembolso.
+- Recibir webhooks, deduplicarlos y emitir eventos firmados a Identity.
+
+## 🔄 Flujo de pago
+
+```mermaid
+flowchart LR
+    U[Usuario] --> I[Identity]
+    I --> B[Billing]
+    B --> C[Culqi]
+    C -. Webhook .-> B
+    B -. payment.succeeded .-> I
+    I --> P[Suscripción]
+```
+
+**Identity inicia la compra**; Billing es un backend privado y no expone claves de Culqi al navegador.
+
+## 📡 Rutas principales (servicio directo)
+
+| Método | Ruta | Propósito |
+| --- | --- | --- |
+| `POST` | `/api/v1/orders` | Crear orden |
+| `POST` | `/api/v1/payments/charges` | Solicitar cargo |
+| `GET` | `/api/v1/payments/{reference}` | Consultar pago |
+| `POST` | `/api/v1/payments/{reference}/reconcile` | Conciliar pago |
+| `POST` | `/api/v1/webhooks/culqi/{token}` | Recibir evento Culqi |
+| `GET` | `/health` | Estado del proceso |
+| `GET` | `/ready` | Estado de MongoDB |
+
+**Swagger del servicio:** `/docs` · **OpenAPI:** `/openapi.json` cuando `SWAGGER_ENABLED=true`.
+
+> En el Swagger **central de Gateway** solo se documentan las rutas de estado de Billing. Las operaciones financieras deben ser llamadas desde servicios autorizados.
+
+## 🛠️ Desarrollo
+
+Desde la raíz del monorepo:
+
+```bash
 npm ci
-Copy-Item .env.example .env
+npm run dev:billing
 ```
 
-Configura en `.env` la conexión `MONGODB_URI`, las claves de Culqi y los secretos internos de al menos 32 caracteres. Usa claves `sk_test_` y `pk_test_` con `CULQI_MODE=test`, o claves `live` con `CULQI_MODE=live`.
+Antes, prepara [`.env.example`](.env.example) con `MONGODB_URI`, claves Culqi **de prueba**, `SERVICE_API_KEY` y secretos de eventos. Para el entorno integrado, sigue [Docker Compose](../../docs/local-development.md).
 
-```powershell
-npm run start:dev
-```
+## 🔐 Seguridad y despliegue
 
-- Documentación Swagger: [localhost:3000/docs](http://localhost:3000/docs).
-- Contrato OpenAPI: [localhost:3000/openapi.json](http://localhost:3000/openapi.json).
-- Entrada del servicio: `GET /` o `GET /api/v1`.
-- Estado del proceso: `GET /health`.
-- Disponibilidad de MongoDB: `GET /ready`.
+- Comienza con `CULQI_MODE=test`; no confundas un cargo registrado con una suscripción activada.
+- Verifica el webhook contra Culqi y entrega eventos idempotentes a Identity.
+- En Cloud Run, configura un receptor HTTPS controlado para Culqi y un despachador de outbox; el temporizador no garantiza ejecución con escalado a cero.
+- No pongas `SERVICE_API_KEY`, `CULQI_SECRET_KEY` ni tokens de webhook en frontend, Git o Swagger público.
 
-`SWAGGER_ENABLED=false` deshabilita la documentación. Actualmente `/docs` y `/openapi.json` son públicos; las operaciones privadas de la API requieren `x-service-key`.
-
-## Cómo usar la API
-
-Desde el backend Laravel, envía `x-service-key` con el valor de `SERVICE_API_KEY`.
-
-1. Crea una orden mediante `POST /api/v1/orders`:
-
-   ```json
-   {
-     "externalReference": "AGRO-ORDER-000125",
-     "companyId": 25,
-     "kind": "PLAN",
-     "amountCents": 7900,
-     "currency": "PEN",
-     "customerEmail": "responsable@empresa.pe",
-     "description": "Plan Profesional - 1 mes"
-   }
-   ```
-
-2. Genera un token con Culqi Checkout y solicita el cargo mediante `POST /api/v1/payments/charges`:
-
-   ```json
-   {
-     "externalReference": "AGRO-ORDER-000125",
-     "tokenId": "tkn_test_TOKENCULQI"
-   }
-   ```
-
-3. Consulta `GET /api/v1/payments/AGRO-ORDER-000125`. Si `data.status` es `UNKNOWN`, concilia con `POST /api/v1/payments/AGRO-ORDER-000125/reconcile` antes de repetir el cobro.
-4. Configura `AGROCLOUD_EVENT_URL` y `AGROCLOUD_EVENT_SECRET` para que Laravel reciba y valide el evento HMAC `payment.succeeded` y active el servicio una sola vez.
-
-Los importes se expresan en céntimos de PEN. Mantén `SERVICE_API_KEY` y las claves secretas de Culqi exclusivamente en el backend. Los reembolsos quedan pendientes de verificación; no cancelan automáticamente suscripciones.
-
-## Respuestas
-
-Las respuestas JSON de los controladores usan este contrato:
-
-```json
-{
-  "success": true,
-  "statusCode": 200,
-  "data": { "status": "PAID", "orderReference": "AGRO-ORDER-000125" },
-  "meta": {
-    "requestId": "9b3f4900-d861-4a74-8db9-e174cd284f1d",
-    "timestamp": "2026-11-08T12:00:00.000Z"
-  }
-}
-```
-
-Los errores usan `success: false` y `error: { code, message, details? }` en lugar de `data`, conservando `statusCode` y `meta`. `VALIDATION_ERROR` incluye los campos inválidos en `details`; una ruta inexistente devuelve JSON con HTTP 404 y código `NOT_FOUND`. El identificador también está en `X-Request-Id`.
-
-Los clientes deben leer los resultados desde `data` (por ejemplo, `data.status`). Este cambio sustituye las respuestas planas anteriores. HTTP 2xx confirma el procesamiento de la solicitud, no necesariamente un pago o reembolso completado. La conciliación, los webhooks y el despacho devuelven 200; crear órdenes o cargos devuelve 201; solicitar un reembolso devuelve 202 mientras espera verificación.
-
-Se conservan `/docs-json`, `/api/v1/health` y `/api/v1/health/ready` como alias. El documento OpenAPI mantiene su formato estándar, sin envoltorio. Los eventos HMAC enviados a Laravel conservan su payload y firma actuales.
-
-
-## Producción
-
-Configura `NODE_ENV=production`, MongoDB, las claves de Culqi correspondientes al modo elegido y la URL HTTPS de Laravel. Para un servidor Node:
-
-```sh
-npm run build
-npm run start:prod
-```
-
-En Vercel, programa llamadas autenticadas a `POST /api/v1/internal/outbox/dispatch`; los temporizadores de entrega solo se habilitan en procesos persistentes. Laravel debe deduplicar los eventos por `event_id`. Si un pago quedó confirmado sin notificación, su conciliación vuelve a generar el evento de forma idempotente.
-
-Consulta el [contrato de integración con Laravel](docs/INTEGRACION_LARAVEL.md) para validar firmas y activar suscripciones. La integración de pagos reales requiere validación previa con Culqi; 3DS, recurrencia automática y confirmación de reembolsos siguen pendientes.
+**Más información:** [Estándar API](../../docs/architecture/api-standard.md) · [Cloud Run](../../docs/deployment/cloud-run.md)
