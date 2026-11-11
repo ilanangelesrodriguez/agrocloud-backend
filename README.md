@@ -58,6 +58,8 @@ Las aplicaciones se publican en 127.0.0.1. Health indica vida del proceso; readi
 
 ## Gateway
 
+El Gateway publica Swagger UI interactivo en `/docs` y el contrato agregado en `/openapi.json`, disponibles en cualquier entorno. La raíz enlaza ambos y presenta las rutas de los cinco servicios.
+
 La raíz `GET /` devuelve un catálogo JSON de los cinco microservicios con su descripción, prefijo, rutas de ejemplo y enlaces de salud. Identity, Agricultural, Notifications, Billing e IA tienen su propio índice al acceder directamente a su puerto.
 
 Identity y Agricultural sirven Swagger UI en `/docs` y el contrato en `/openapi.json` con `APP_ENV=local`. Notifications sirve las mismas rutas con `NODE_ENV=development`. Compose local configura esos entornos. Estas tres interfaces cargan Swagger UI desde jsDelivr y muestran las operaciones para clientes. Los contratos versionados conservan también las operaciones internas. Billing e IA mantienen su configuración de documentación y requieren sus claves de servicio en las rutas protegidas.

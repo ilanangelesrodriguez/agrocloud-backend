@@ -17,6 +17,7 @@ ARG WORKSPACE
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/${WORKSPACE}/package.json ./${WORKSPACE}/package.json
 COPY --from=build --chown=node:node /app/${WORKSPACE}/dist ./${WORKSPACE}/dist
+COPY --from=build --chown=node:node /app/packages/contracts/openapi ./packages/contracts/openapi
 WORKDIR /app/${WORKSPACE}
 USER node
 EXPOSE 3000

@@ -5,9 +5,9 @@ export class AppService {
   index() {
     return {
       service: 'agrocloud-gateway',
-      description: 'Punto de entrada a las APIs de AgroCloud.',
+      description: 'API de acceso a AgroCloud para gestionar usuarios, operaciones agrícolas y notificaciones, y consultar el estado de los servicios.',
       apiVersion: 'v1',
-      links: { health: '/health' },
+      links: { documentation: '/docs', openapi: '/openapi.json', health: '/health' },
       services: [
         {
           name: 'Identity',
@@ -41,14 +41,14 @@ export class AppService {
           description:
             'Órdenes, pagos y reembolsos. Las compras del navegador pasan por Identity.',
           prefix: '/api/v1/billing',
-          routes: [],
+          routes: ['GET /api/v1/billing/health', 'GET /api/v1/billing/ready'],
         },
         {
           name: 'AI',
           description:
             'Análisis de imágenes. Las solicitudes del navegador pasan por Agricultural.',
           prefix: '/api/v1/ai',
-          routes: [],
+          routes: ['GET /api/v1/ai/health', 'GET /api/v1/ai/ready'],
         },
       ].map(({ prefix, ...service }) => ({
         ...service,
