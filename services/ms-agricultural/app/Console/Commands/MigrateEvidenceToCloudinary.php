@@ -33,10 +33,16 @@ class MigrateEvidenceToCloudinary extends Command
                 $extension = pathinfo($photo->file_path, PATHINFO_EXTENSION);
                 $key = "$photo->id_empresa/$photo->id_inspeccion/legacy-{$photo->id_evidencia}-{$photo->image_sha256}.$extension";
                 $reference = $storage->upload($bytes, $key);
-                $migrated += DB::table('evidencia_inspeccion')
+                $updated = DB::table('evidencia_inspeccion')
                     ->where('id_evidencia', $photo->id_evidencia)
+                    ->where('id_empresa', $photo->id_empresa)
+                    ->where('image_sha256', $photo->image_sha256)
                     ->where('file_path', $photo->file_path)
                     ->update(['file_path' => $reference]);
+                if ($updated === 0) {
+                    throw new RuntimeException('Evidence changed during migration.');
+                }
+                $migrated += $updated;
             } catch (\Exception) {
                 $failed++;
                 $this->error('Could not migrate evidence '.$photo->id_evidencia);

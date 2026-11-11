@@ -20,12 +20,12 @@ class EvidenceStorage
         return match (config('agricultural_storage.driver')) {
             'local' => Storage::disk('agricultural')->putFileAs("$company/$inspection", $file, $name)
                 ?: throw new RuntimeException('Evidence storage unavailable.'),
-            'cloudinary' => $this->upload(file_get_contents($file->getRealPath()), "$company/$inspection/$name"),
+            'cloudinary' => $this->upload(file_get_contents($file->getRealPath()), "$company/$inspection/$name", cleanupOnFailure: true),
             default => throw new RuntimeException('Unsupported evidence storage driver.'),
         };
     }
 
-    public function upload(string $bytes, string $key): string
+    public function upload(string $bytes, string $key, bool $cleanupOnFailure = false): string
     {
         $prefix = trim((string) config('agricultural_storage.prefix'), '/');
         $format = strtolower(pathinfo($key, PATHINFO_EXTENSION));
@@ -37,21 +37,44 @@ class EvidenceStorage
         }
 
         [$base, $apiKey, $secret] = $this->credentials();
-        $response = $this->http()->withBasicAuth($apiKey, $secret)
-            ->attach('file', $bytes, 'evidence.'.$format)
-            ->post($base.'/image/upload', [
-                'public_id' => $id,
-                'type' => 'authenticated',
-                'overwrite' => 'false',
-            ]);
-
         $reference = "cloudinary:$id.$format";
-        if (! $response->successful() && $response->status() !== 409) {
-            throw new RuntimeException('Cloudinary upload failed.');
+        if ($cleanupOnFailure) {
+            logger()->info('Cloudinary evidence upload started.', ['reference' => $reference]);
         }
 
-        if (! hash_equals(hash('sha256', $bytes), hash('sha256', $this->read($reference)))) {
-            throw new RuntimeException('Cloudinary evidence hash mismatch.');
+        try {
+            $response = $this->http()->withBasicAuth($apiKey, $secret)
+                ->attach('file', $bytes, 'evidence.'.$format)
+                ->post($base.'/image/upload', [
+                    'public_id' => $id,
+                    'type' => 'authenticated',
+                    'overwrite' => 'false',
+                ]);
+            $uploadStatus = $response->status();
+        } catch (\Illuminate\Http\Client\ConnectionException) {
+            $uploadStatus = null;
+        }
+
+        try {
+            // Cloudinary may have saved the object despite an error or a lost response.
+            if (! hash_equals(hash('sha256', $bytes), hash('sha256', $this->read($reference)))) {
+                throw new RuntimeException('Cloudinary evidence hash mismatch.');
+            }
+        } catch (\Exception) {
+            logger()->warning('Cloudinary evidence could not be confirmed.', [
+                'reference' => $reference,
+                'upload_status' => $uploadStatus,
+            ]);
+
+            if ($cleanupOnFailure) {
+                try {
+                    $this->delete($reference);
+                } catch (\Exception) {
+                    logger()->warning('Cloudinary evidence requires cleanup.', ['reference' => $reference]);
+                }
+            }
+
+            throw new RuntimeException('Cloudinary evidence could not be confirmed.');
         }
 
         return $reference;
