@@ -1014,6 +1014,9 @@
           },
           "429": {
             "description": "Límite de solicitudes alcanzado"
+          },
+          "503": {
+            "description": "La versión del aviso de privacidad no está configurada"
           }
         },
         "security": [],
@@ -1192,7 +1195,13 @@
                   },
                   "revision_manual": {
                     "type": "boolean",
-                    "description": "Confirmación de un superadministrador cuando el proveedor no verifica un RUC activo y habido. El motivo queda auditado."
+                    "description": "Confirmación de un superadministrador cuando el proveedor no verifica un RUC activo y habido. En este caso el motivo debe tener al menos 20 caracteres."
+                  },
+                  "referencia_verificacion": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 255,
+                    "description": "Referencia administrativa opcional que se registra al aprobar mediante revisión manual."
                   }
                 },
                 "required": [
@@ -1638,6 +1647,20 @@
                           "amount_cents": {
                             "type": "integer",
                             "minimum": 0
+                          },
+                          "description": {
+                            "type": "string",
+                            "maxLength": 500
+                          },
+                          "valid_from": {
+                            "type": "string",
+                            "format": "date",
+                            "description": "Primer día de vigencia, inclusive, en UTC."
+                          },
+                          "valid_until": {
+                            "type": "string",
+                            "format": "date",
+                            "description": "Primer día fuera de vigencia, en UTC."
                           },
                           "duration_days": {
                             "type": "integer",
