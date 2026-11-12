@@ -18,6 +18,18 @@ return new class extends Migration
 
     public function down(): void
     {
+        $hasDuplicateRuc = DB::table('solicitudes_acceso')
+            ->select('ruc')
+            ->groupBy('ruc')
+            ->havingRaw('COUNT(*) > 1')
+            ->exists();
+
+        if ($hasDuplicateRuc) {
+            throw new \RuntimeException(
+                'Cannot restore the unique RUC index while multiple access requests share a RUC. Preserve the request history before attempting this rollback.',
+            );
+        }
+
         Schema::table('solicitudes_acceso', function (Blueprint $table): void {
             $table->unique('ruc');
         });

@@ -57,7 +57,7 @@ Para probar un servicio privado usa autenticación IAM o `gcloud run services pr
 ## Alta empresarial en Identity
 
 - Define `IDENTITY_PRIVACY_VERSION` con la misma versión del aviso publicado que envía el frontend. Define `IDENTITY_FREE_PLAN_DAYS`, `IDENTITY_FREE_PLAN_USERS`, `IDENTITY_FREE_PLAN_LOTS` e `IDENTITY_FREE_PLAN_AI` con la duración y los cupos aprobados antes de habilitar aprobaciones.
-- Respalda PostgreSQL y aplica las migraciones de `ms-identity` antes de habilitar la nueva revisión. La migración de reenvíos conserva los intentos rechazados; una vez que existan varios intentos por RUC, no reviertas esa migración sin un plan que preserve el historial.
+- Respalda PostgreSQL y aplica las migraciones de `ms-identity` antes de habilitar la nueva revisión. La migración de reenvíos conserva los intentos rechazados. Si existen varias solicitudes para el mismo RUC, la reversión se detiene antes de modificar los índices. Prepara un plan que preserve el historial antes de intentar la reversión.
 - Configura `IDENTITY_GATEWAY_CLIENT_IP_KEY` como un secreto aleatorio compartido exclusivamente por Gateway e Identity. En el Gateway, configura `GATEWAY_TRUSTED_PROXY_CIDRS` con las redes de los proxies de entrada que realmente controlan la cadena `X-Forwarded-For`. Evita rangos abiertos o confiar en un número fijo de saltos. Si el Gateway recibe conexiones directas, deja la lista vacía. Si el ingreso no ofrece una cadena verificable, aplica el límite por visitante en esa capa.
 - En `IDENTITY_BILLING_OFFERS` puedes indicar `description` y las fechas `valid_from` (inclusive) y `valid_until` (exclusiva), con formato `YYYY-MM-DD` en UTC. Las fechas son opcionales; cuando se configuran, el catálogo y las compras nuevas respetan esa vigencia.
 
