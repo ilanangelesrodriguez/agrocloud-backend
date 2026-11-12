@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AccessRequestController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\InternalController;
+use App\Http\Controllers\Api\V1\PublicOnboardingController;
 use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Http\JsonResponse;
@@ -33,13 +34,15 @@ Route::get('/ready', function (): JsonResponse {
 })->name('ready');
 Route::get('/auth/keys', [AuthController::class, 'keys'])->middleware('throttle:identity-api');
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:identity-login');
+Route::post('/access-requests', [AccessRequestController::class, 'store'])->middleware('throttle:identity-onboarding');
+Route::post('/public/ruc/lookup', [PublicOnboardingController::class, 'lookup'])->middleware('throttle:identity-ruc');
+Route::get('/public/offers', [PublicOnboardingController::class, 'offers'])->middleware('throttle:identity-api');
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:identity-recovery');
 Route::middleware('throttle:identity-public')->group(function (): void {
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
-    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/auth/activate', [AuthController::class, 'activate']);
     Route::post('/auth/confirm-email', [AuthController::class, 'confirmEmailChange']);
-    Route::post('/access-requests', [AccessRequestController::class, 'store']);
 });
 Route::middleware(['identity.auth', 'throttle:identity-api'])->group(function (): void {
     Route::get('/auth/me', [AuthController::class, 'me']);

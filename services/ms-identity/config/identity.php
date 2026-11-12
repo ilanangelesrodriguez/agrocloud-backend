@@ -10,6 +10,15 @@ return [
     'refresh_days' => (int) env('IDENTITY_REFRESH_DAYS', 14),
     'frontend_url' => env('IDENTITY_FRONTEND_URL', 'http://localhost:3000'),
     'service_key' => env('IDENTITY_SERVICE_API_KEY', ''),
+    'privacy_version' => env('IDENTITY_PRIVACY_VERSION', ''),
+    'free_plan' => [
+        'duration_days' => env('IDENTITY_FREE_PLAN_DAYS'),
+        'limits' => [
+            'usuarios' => env('IDENTITY_FREE_PLAN_USERS'),
+            'lotes' => env('IDENTITY_FREE_PLAN_LOTS'),
+            'analisis_ia' => env('IDENTITY_FREE_PLAN_AI'),
+        ],
+    ],
     'billing' => [
         'url' => env('BILLING_SERVICE_URL', 'http://ms-billing:3000'),
         'api_key' => env('BILLING_SERVICE_API_KEY', ''),

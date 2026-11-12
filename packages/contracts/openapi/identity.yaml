@@ -987,10 +987,33 @@
         "operationId": "post_access-requests",
         "responses": {
           "201": {
-            "description": "Success"
+            "description": "Solicitud registrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "reference"
+                  ]
+                }
+              }
+            }
           },
           "422": {
             "description": "Invalid input or business rule"
+          },
+          "429": {
+            "description": "Límite de solicitudes alcanzado"
           }
         },
         "security": [],
@@ -1029,6 +1052,16 @@
                   },
                   "uso": {
                     "type": "string"
+                  },
+                  "privacy_accepted": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  },
+                  "privacy_version": {
+                    "type": "string",
+                    "maxLength": 80
                   }
                 },
                 "required": [
@@ -1040,7 +1073,9 @@
                   "apellido",
                   "correo",
                   "telefono",
-                  "uso"
+                  "uso",
+                  "privacy_accepted",
+                  "privacy_version"
                 ]
               }
             }
@@ -1127,6 +1162,9 @@
           },
           "422": {
             "description": "Invalid input or business rule"
+          },
+          "503": {
+            "description": "El plan gratuito no está configurado correctamente"
           }
         },
         "security": [
@@ -1151,6 +1189,10 @@
                   },
                   "motivo": {
                     "type": "string"
+                  },
+                  "revision_manual": {
+                    "type": "boolean",
+                    "description": "Confirmación de un superadministrador cuando el proveedor no verifica un RUC activo y habido. El motivo queda auditado."
                   }
                 },
                 "required": [
@@ -1470,6 +1512,189 @@
         "tags": [
           "Eventos internos"
         ]
+      }
+    },
+    "/public/ruc/lookup": {
+      "post": {
+        "operationId": "lookupPublicRuc",
+        "summary": "Consultar información tributaria de un RUC",
+        "tags": [
+          "Solicitudes de acceso"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ruc": {
+                    "type": "string",
+                    "pattern": "^[0-9]{11}$"
+                  }
+                },
+                "required": [
+                  "ruc"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resultado de consulta, incluida indisponibilidad temporal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "ruc": {
+                          "type": "string",
+                          "pattern": "^[0-9]{11}$"
+                        },
+                        "resultado": {
+                          "type": "string",
+                          "enum": [
+                            "verificado",
+                            "pendiente",
+                            "no_encontrado"
+                          ]
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "razon_social": {
+                          "type": "string"
+                        },
+                        "estado": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "condicion": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "ruc",
+                        "resultado",
+                        "mensaje"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "RUC con formato inválido"
+          },
+          "429": {
+            "description": "Límite de consultas alcanzado"
+          }
+        }
+      }
+    },
+    "/public/offers": {
+      "get": {
+        "operationId": "listPublicOffers",
+        "summary": "Listar planes publicados",
+        "tags": [
+          "Suscripciones"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Ofertas publicadas y vigentes en configuración",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string",
+                            "enum": [
+                              "PEN"
+                            ]
+                          },
+                          "amount_cents": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "duration_days": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "limits": {
+                            "type": "object",
+                            "properties": {
+                              "usuarios": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "lotes": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "analisis_ia": {
+                                "type": "integer",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "usuarios",
+                              "lotes",
+                              "analisis_ia"
+                            ]
+                          },
+                          "available": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "name",
+                          "currency",
+                          "amount_cents",
+                          "duration_days",
+                          "limits",
+                          "available"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de consultas alcanzado"
+          },
+          "503": {
+            "description": "Oferta publicada mal configurada"
+          }
+        }
       }
     }
   },

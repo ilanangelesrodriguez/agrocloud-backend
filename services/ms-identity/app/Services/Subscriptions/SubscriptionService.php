@@ -13,6 +13,61 @@ use Illuminate\Validation\ValidationException;
 
 class SubscriptionService
 {
+    public function activateFreePlan(int $company): void
+    {
+        DB::transaction(function () use ($company): void {
+            Empresa::lockForUpdate()->findOrFail($company);
+            if (DB::table('suscripciones')->where('id_empresa', $company)->exists()) {
+                return;
+            }
+
+            $duration = filter_var(config('identity.free_plan.duration_days'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 366]]);
+            abort_if($duration === false, 503, 'Configure the free plan duration.');
+            $limits = [];
+            foreach (['usuarios', 'lotes', 'analisis_ia'] as $resource) {
+                $limit = filter_var(config('identity.free_plan.limits.'.$resource), FILTER_VALIDATE_INT, [
+                    'options' => ['min_range' => $resource === 'usuarios' ? 1 : 0, 'max_range' => 1000000000],
+                ]);
+                abort_if($limit === false, 503, 'Configure all free plan quotas.');
+                $limits[$resource] = $limit;
+            }
+
+            $now = now();
+            DB::table('suscripciones')->insert([
+                'id_empresa' => $company, 'plan' => 'GRATUITO', 'estado' => 'ACTIVA',
+                'inicia_en' => $now, 'vence_en' => $now->copy()->addDays($duration),
+                'created_at' => $now, 'updated_at' => $now,
+            ]);
+            foreach ($limits as $resource => $limit) {
+                DB::table('derechos_acceso')->insert([
+                    'id_empresa' => $company, 'recurso' => $resource, 'limite' => $limit, 'consumido' => 0,
+                    'created_at' => $now, 'updated_at' => $now,
+                ]);
+            }
+        });
+    }
+
+    public function publicOffers(): array
+    {
+        $result = [];
+        foreach (config('identity.billing.offers', []) as $key => $configured) {
+            if (! is_string($key) || ! preg_match('/^[a-zA-Z0-9_-]+$/D', $key)
+                || ($configured['kind'] ?? null) !== 'PLAN' || ($configured['public'] ?? false) !== true
+                || ($configured['plan'] ?? null) === 'GRATUITO') {
+                continue;
+            }
+            $offer = $this->offer($key);
+            $result[] = [
+                'key' => $key, 'name' => $offer['plan'], 'currency' => 'PEN',
+                'amount_cents' => $offer['amount_cents'], 'duration_days' => $offer['duration_days'],
+                'limits' => array_intersect_key($offer['limits'], array_flip(['usuarios', 'lotes', 'analisis_ia'])),
+                'available' => true,
+            ];
+        }
+
+        return $result;
+    }
+
     public function snapshot(int $company): array
     {
         $subscription = DB::table('suscripciones')->where('id_empresa', $company)->first();
@@ -78,7 +133,7 @@ class SubscriptionService
             $subscription = DB::table('suscripciones')->where('id_empresa', $company)->first();
             $active = $subscription && $subscription->estado === 'ACTIVA' && CarbonImmutable::parse($subscription->vence_en)->isFuture();
             if ($offer['kind'] === 'PLAN') {
-                abort_if($active, 409, 'Use renewal for an active subscription.');
+                abort_if($active && $subscription->plan !== 'GRATUITO', 409, 'Use renewal for an active subscription.');
             } elseif ($offer['kind'] === 'RENEWAL') {
                 abort_unless($subscription && $subscription->plan === $offer['plan'], 422, 'Renewal must match the existing plan.');
             } else {
@@ -130,11 +185,11 @@ class SubscriptionService
             if (in_array($order->kind, ['PLAN', 'RENEWAL'], true)) {
                 $old = DB::table('suscripciones')->where('id_empresa', $order->company_id)->first();
                 $active = $old && $old->estado === 'ACTIVA' && CarbonImmutable::parse($old->vence_en)->isFuture();
-                abort_if($order->kind === 'PLAN' && $active, 409, 'A plan is already active.');
+                abort_if($order->kind === 'PLAN' && $active && $old->plan !== 'GRATUITO', 409, 'A plan is already active.');
                 abort_if($order->kind === 'RENEWAL' && (! $old || $old->plan !== $offer['plan']), 409, 'Subscription changed since checkout.');
                 $base = $active && $order->kind === 'RENEWAL' ? CarbonImmutable::parse($old->vence_en) : CarbonImmutable::now();
                 DB::table('suscripciones')->updateOrInsert(['id_empresa' => $order->company_id], [
-                    'plan' => $offer['plan'], 'estado' => 'ACTIVA', 'inicia_en' => $active ? $old->inicia_en : now(),
+                    'plan' => $offer['plan'], 'estado' => 'ACTIVA', 'inicia_en' => $active && $order->kind === 'RENEWAL' ? $old->inicia_en : now(),
                     'vence_en' => $base->addDays($offer['duration_days']), 'created_at' => $old?->created_at ?? now(), 'updated_at' => now(),
                 ]);
                 foreach ($offer['limits'] as $resource => $limit) {

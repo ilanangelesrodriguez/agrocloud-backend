@@ -7,17 +7,26 @@ use App\Models\Rol;
 use App\Models\SolicitudAcceso;
 use App\Models\User;
 use App\Services\SunatRucService;
+use App\Services\Subscriptions\SubscriptionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AccessService
 {
-    public function decide(int $id, string $decision, string $reason, User $actor): SolicitudAcceso
+    public function decide(int $id, string $decision, string $reason, User $actor, bool $manualReview = false): SolicitudAcceso
     {
         abort_unless($actor->isSuperAdmin(), 403);
         $initial = SolicitudAcceso::findOrFail($id);
         $verification = $decision === 'APROBADA' ? app(SunatRucService::class)->verificar($initial->ruc, $initial->razon_social) : null;
+
+        if ($decision === 'APROBADA' && (($verification['resultado'] ?? null) !== 'verificado'
+            || ($verification['estado'] ?? null) !== 'ACTIVO' || ($verification['condicion'] ?? null) !== 'HABIDO')) {
+            if (! $manualReview) {
+                throw ValidationException::withMessages(['revision_manual' => 'La aprobación requiere revisión manual justificada.']);
+            }
+            $verification['revision_manual'] = ['motivo' => $reason, 'id_usuario' => $actor->getKey(), 'fecha' => now()->toIso8601String()];
+        }
 
         return DB::transaction(function () use ($id, $decision, $reason, $actor, $initial, $verification): SolicitudAcceso {
             $entry = SolicitudAcceso::lockForUpdate()->findOrFail($id);
@@ -29,6 +38,7 @@ class AccessService
                 }
                 $role = Rol::where('codigo', 'ADMIN')->where('estado', true)->firstOrFail();
                 $company = Empresa::create([...$entry->only(['ruc', 'razon_social', 'nombre_comercial', 'tipo_empresa', 'telefono', 'correo']), 'sunat_verificacion' => $verification]);
+                app(SubscriptionService::class)->activateFreePlan($company->getKey());
                 $user = User::create([...$entry->only(['nombre', 'apellido', 'correo', 'telefono']), 'id_empresa' => $company->getKey(),
                     'id_rol' => $role->getKey(), 'password_hash' => Str::random(64), 'estado' => false]);
                 $user->forceFill(['invitation_hash' => hash('sha256', Str::random(64))])->save();

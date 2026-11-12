@@ -74,3 +74,13 @@ Requiere la base disponible, secretos configurados y `IDENTITY_BOOTSTRAP_EMAIL` 
 - En producción se recomienda un servidor PHP adecuado y un worker para las tareas de correo.
 
 **Documentación:** [Swagger del Gateway](../../gateway/README.md) · [Inicio local](../../docs/local-development.md) · [Cloud Run](../../docs/deployment/cloud-run.md)
+
+## Alta empresarial desde la landing
+
+Desde el Gateway, usar `POST /api/v1/identity/public/ruc/lookup` con `{ "ruc": "..." }` para consultar los datos tributarios. Si el resultado es `pendiente`, el formulario puede continuar con datos declarados. `GET /api/v1/identity/public/offers` devuelve solo ofertas PLAN con `"public": true` en IDENTITY_BILLING_OFFERS.
+
+El formulario debe enviar `privacy_accepted: true` y `privacy_version` igual a IDENTITY_PRIVACY_VERSION. Configurar esa variable con la versión del aviso que el formulario realmente muestra. Identity registra la fecha y la finalidad, y devuelve `reference` como comprobante. Las solicitudes previas mantienen sus columnas de consentimiento vacías.
+
+Configurar IDENTITY_FREE_PLAN_DAYS, IDENTITY_FREE_PLAN_USERS, IDENTITY_FREE_PLAN_LOTS e IDENTITY_FREE_PLAN_AI con valores aprobados. El alta crea el plan GRATUITO y los cupos en la misma transacción. Si no se verifica un RUC activo y habido, la aprobación de superadministrador requiere `revision_manual: true` y un motivo que se registra en auditoría.
+
+Apuntar IDENTITY_FRONTEND_URL al portal que sirva /activate. Configurar SMTP y el worker de Identity para entregar las invitaciones. La página de activación envía user_id, token, password y password_confirmation a POST /api/v1/identity/auth/activate y dirige al login tras la confirmación.
