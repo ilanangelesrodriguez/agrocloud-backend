@@ -10,6 +10,7 @@ return [
     'refresh_days' => (int) env('IDENTITY_REFRESH_DAYS', 14),
     'frontend_url' => env('IDENTITY_FRONTEND_URL', 'http://localhost:3000'),
     'service_key' => env('IDENTITY_SERVICE_API_KEY', ''),
+    'gateway_client_ip_key' => env('IDENTITY_GATEWAY_CLIENT_IP_KEY', ''),
     'privacy_version' => env('IDENTITY_PRIVACY_VERSION', ''),
     'free_plan' => [
         'duration_days' => env('IDENTITY_FREE_PLAN_DAYS'),

@@ -1,3 +1,5 @@
+import { createHmac } from 'node:crypto';
+import { isIP } from 'node:net';
 import { request as httpRequest, type IncomingHttpHeaders } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -121,6 +123,7 @@ export function configureProxy(app: NestExpressApplication): void {
         if (
           name.startsWith('x-forwarded-') ||
           name === 'forwarded' ||
+          name === 'x-agrocloud-client-ip' ||
           name === 'x-user-id' ||
           name === 'x-company-id' ||
           name === 'x-tenant-id' ||
@@ -132,6 +135,16 @@ export function configureProxy(app: NestExpressApplication): void {
       }
       // Nunca reenviar credenciales de infraestructura aportadas por clientes.
       delete headers['x-serverless-authorization'];
+
+      const clientIp = req.ip;
+      const signingKey = process.env.IDENTITY_GATEWAY_CLIENT_IP_KEY;
+      if (service === 'identity' && signingKey && clientIp && isIP(clientIp)) {
+        const timestamp = Math.floor(Date.now() / 1000);
+        const signature = createHmac('sha256', signingKey)
+          .update([requestId, timestamp, clientIp].join('\n'))
+          .digest('hex');
+        headers['x-agrocloud-client-ip'] = [timestamp, clientIp, signature].join(';');
+      }
 
       if (process.env.K_SERVICE) {
         try {

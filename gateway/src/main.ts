@@ -10,6 +10,13 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
+  const trustedProxies = (process.env.GATEWAY_TRUSTED_PROXY_CIDRS ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  if (trustedProxies.length > 0) {
+    app.set('trust proxy', trustedProxies);
+  }
   app.use((_request: Request, response: Response, next: NextFunction) => {
     response.setHeader('X-Request-Id', randomUUID());
     next();

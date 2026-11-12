@@ -6,11 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AccessRequest;
 use App\Models\SolicitudAcceso;
 use App\Services\Access\AccessService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
-use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AccessRequestController extends Controller
@@ -29,7 +29,7 @@ class AccessRequestController extends Controller
                 'historial' => [['evento' => 'SOLICITADA', 'fecha' => now()->toIso8601String()]],
             ]);
         } catch (UniqueConstraintViolationException) {
-            throw ValidationException::withMessages(['ruc' => 'Ya existe una solicitud para este RUC.']);
+            throw ValidationException::withMessages(['ruc' => 'Ya existe una solicitud sin rechazar para este RUC.']);
         }
 
         return response()->json(['message' => 'Access request received.', 'reference' => $reference], 201);
@@ -45,8 +45,20 @@ class AccessRequestController extends Controller
     public function decide(Request $request, int $accessRequest, AccessService $access): JsonResponse
     {
         abort_unless($request->user()->isSuperAdmin(), 403);
-        $data = $request->validate(['decision' => ['required', Rule::in(['APROBADA', 'RECHAZADA', 'EN_REVISION'])], 'motivo' => ['required', 'string', 'max:2000'], 'revision_manual' => ['sometimes', 'boolean']]);
+        $data = $request->validate([
+            'decision' => ['required', Rule::in(['APROBADA', 'RECHAZADA', 'EN_REVISION'])],
+            'motivo' => ['required', 'string', 'max:2000'],
+            'revision_manual' => ['sometimes', 'boolean'],
+            'referencia_verificacion' => ['sometimes', 'nullable', 'string', 'max:255'],
+        ]);
 
-        return response()->json(['data' => $access->decide($accessRequest, $data['decision'], $data['motivo'], $request->user(), $request->boolean('revision_manual'))]);
+        return response()->json(['data' => $access->decide(
+            $accessRequest,
+            $data['decision'],
+            $data['motivo'],
+            $request->user(),
+            $request->boolean('revision_manual'),
+            $data['referencia_verificacion'] ?? null,
+        )]);
     }
 }

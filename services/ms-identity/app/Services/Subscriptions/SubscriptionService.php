@@ -50,6 +50,7 @@ class SubscriptionService
     public function publicOffers(): array
     {
         $result = [];
+        $today = CarbonImmutable::now('UTC')->toDateString();
         foreach (config('identity.billing.offers', []) as $key => $configured) {
             if (! is_string($key) || ! preg_match('/^[a-zA-Z0-9_-]+$/D', $key)
                 || ($configured['kind'] ?? null) !== 'PLAN' || ($configured['public'] ?? false) !== true
@@ -57,11 +58,16 @@ class SubscriptionService
                 continue;
             }
             $offer = $this->offer($key);
+            if (! $this->offerIsCurrent($offer, $today)) {
+                continue;
+            }
+
             $result[] = [
                 'key' => $key, 'name' => $offer['plan'], 'currency' => 'PEN',
                 'amount_cents' => $offer['amount_cents'], 'duration_days' => $offer['duration_days'],
                 'limits' => array_intersect_key($offer['limits'], array_flip(['usuarios', 'lotes', 'analisis_ia'])),
                 'available' => true,
+                ...array_intersect_key($offer, array_flip(['description', 'valid_from', 'valid_until'])),
             ];
         }
 
@@ -116,7 +122,27 @@ class SubscriptionService
             abort_unless(is_int($offer['quantity'] ?? null) && $offer['quantity'] > 0 && $offer['quantity'] <= 1000000, 503, 'Invalid addon quantity.');
         }
 
+        foreach (['valid_from', 'valid_until'] as $field) {
+            if (! array_key_exists($field, $offer)) {
+                continue;
+            }
+            $date = $offer[$field];
+            abort_unless(is_string($date) && preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/D', $date, $parts)
+                && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1]), 503, 'Invalid offer date.');
+        }
+        abort_if(isset($offer['valid_from'], $offer['valid_until']) && $offer['valid_from'] >= $offer['valid_until'], 503, 'Invalid offer window.');
+        if (array_key_exists('description', $offer)) {
+            abort_unless(is_string($offer['description']) && trim($offer['description']) !== ''
+                && mb_strlen($offer['description']) <= 500, 503, 'Invalid offer description.');
+        }
+
         return $offer;
+    }
+
+    private function offerIsCurrent(array $offer, string $today): bool
+    {
+        return (! isset($offer['valid_from']) || $offer['valid_from'] <= $today)
+            && (! isset($offer['valid_until']) || $today < $offer['valid_until']);
     }
 
     public function checkout(int $company, string $offerKey, User $actor): array
@@ -129,6 +155,9 @@ class SubscriptionService
                 abort_unless($existing->offer_key === $offerKey, 409, 'Another checkout is pending for this company.');
 
                 return $existing;
+            }
+            if (! $this->offerIsCurrent($offer, CarbonImmutable::now('UTC')->toDateString())) {
+                throw ValidationException::withMessages(['offer_key' => 'La oferta no está vigente.']);
             }
             $subscription = DB::table('suscripciones')->where('id_empresa', $company)->first();
             $active = $subscription && $subscription->estado === 'ACTIVA' && CarbonImmutable::parse($subscription->vence_en)->isFuture();

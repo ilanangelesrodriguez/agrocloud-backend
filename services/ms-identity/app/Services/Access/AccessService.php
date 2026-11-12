@@ -14,8 +14,14 @@ use Illuminate\Validation\ValidationException;
 
 class AccessService
 {
-    public function decide(int $id, string $decision, string $reason, User $actor, bool $manualReview = false): SolicitudAcceso
-    {
+    public function decide(
+        int $id,
+        string $decision,
+        string $reason,
+        User $actor,
+        bool $manualReview = false,
+        ?string $verificationReference = null,
+    ): SolicitudAcceso {
         abort_unless($actor->isSuperAdmin(), 403);
         $initial = SolicitudAcceso::findOrFail($id);
         $verification = $decision === 'APROBADA' ? app(SunatRucService::class)->verificar($initial->ruc, $initial->razon_social) : null;
@@ -25,7 +31,16 @@ class AccessService
             if (! $manualReview) {
                 throw ValidationException::withMessages(['revision_manual' => 'La aprobación requiere revisión manual justificada.']);
             }
-            $verification['revision_manual'] = ['motivo' => $reason, 'id_usuario' => $actor->getKey(), 'fecha' => now()->toIso8601String()];
+            if (mb_strlen(trim($reason)) < 20) {
+                throw ValidationException::withMessages(['motivo' => 'Describe la justificación de la aprobación manual en al menos 20 caracteres.']);
+            }
+
+            $verification['revision_manual'] = [
+                'motivo' => $reason,
+                'referencia_verificacion' => $verificationReference,
+                'id_usuario' => $actor->getKey(),
+                'fecha' => now()->toIso8601String(),
+            ];
         }
 
         return DB::transaction(function () use ($id, $decision, $reason, $actor, $initial, $verification): SolicitudAcceso {

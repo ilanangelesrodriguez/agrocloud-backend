@@ -22,7 +22,7 @@ class SunatRucService
             return $pending('Consulta tributaria pendiente: servicio no configurado.');
         }
 
-        $cacheKey = 'sunat:ruc:v1:'.hash('sha256', $url.'|'.$key.'|'.$ruc);
+        $cacheKey = 'sunat:ruc:v2:'.hash('sha256', $url.'|'.$key.'|'.$ruc);
         try {
             $cached = Cache::get($cacheKey);
         } catch (\Exception) {
@@ -66,6 +66,10 @@ class SunatRucService
             'consultado_en' => now()->toIso8601String(), 'fuente' => 'Zodipe / padrón SUNAT'];
         foreach (['estado', 'condicion', 'direccion', 'ubigeo', 'actualizado'] as $field) {
             $result[$field] = is_string($data[$field] ?? null) ? mb_substr($data[$field], 0, 500) : null;
+        }
+        foreach (['estado', 'condicion'] as $field) {
+            $value = $result[$field];
+            $result[$field] = $value === null ? null : mb_strtoupper(trim($value));
         }
         $this->cache($cacheKey, $result, max(60, (int) config('services.ruc.cache_seconds', 86400)));
 
