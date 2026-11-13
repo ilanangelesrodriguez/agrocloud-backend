@@ -2,8 +2,10 @@ import { readFile } from 'node:fs/promises';
 
 const services = ['identity', 'agricultural', 'notifications', 'billing', 'ai'] as const;
 
+const httpMethods = new Set(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']);
+
 interface ServiceContract {
-  paths: Record<string, Record<string, Record<string, unknown>>>;
+  paths: Record<string, Record<string, unknown>>;
 }
 
 function gatewayPath(service: (typeof services)[number], path: string): string {
@@ -34,7 +36,12 @@ export async function gatewayOpenApi() {
     for (const [path, item] of Object.entries(contract.paths)) {
       if (path === '/' || path.startsWith('/internal/') || path.startsWith('/api/v1/internal/')) continue;
       const operations: ServiceContract['paths'][string] = {};
-      for (const [method, operation] of Object.entries(item)) {
+      for (const [method, value] of Object.entries(item)) {
+        if (!httpMethods.has(method)) {
+          operations[method] = value;
+          continue;
+        }
+        const operation = value as Record<string, unknown>;
         const domains = operation.tags as string[] | undefined;
         const names = domains?.map((domain) => label + ' · ' + domain) ?? [label];
         names.forEach((name) => usedTags.add(name));
