@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AccessRequestController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BillingOfferController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\InternalController;
 use App\Http\Controllers\Api\V1\PublicOnboardingController;
@@ -63,6 +64,11 @@ Route::middleware(['identity.auth', 'throttle:identity-api'])->group(function ()
     Route::get('/permissions', [InternalController::class, 'permissions']);
     Route::get('/access-requests', [AccessRequestController::class, 'index']);
     Route::post('/access-requests/{accessRequest}/decision', [AccessRequestController::class, 'decide'])->whereNumber('accessRequest');
+    Route::get('/billing-offers', [BillingOfferController::class, 'index']);
+    Route::post('/billing-offers', [BillingOfferController::class, 'store']);
+    Route::get('/billing-offers/{offer}', [BillingOfferController::class, 'show'])->where('offer', '[A-Za-z0-9_-]{1,60}');
+    Route::patch('/billing-offers/{offer}', [BillingOfferController::class, 'update'])->where('offer', '[A-Za-z0-9_-]{1,60}');
+    Route::get('/subscription/offers', [SubscriptionController::class, 'offers'])->middleware('identity.permission:suscripciones.ver');
     Route::get('/subscription', [SubscriptionController::class, 'show'])->middleware('identity.permission:suscripciones.ver');
     Route::post('/subscription/orders', [SubscriptionController::class, 'checkout'])->middleware('identity.permission:suscripciones.gestionar');
 });

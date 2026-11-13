@@ -13,6 +13,56 @@ use Illuminate\Validation\ValidationException;
 
 class SubscriptionService
 {
+    public function __construct(private OfferCatalog $catalog) {}
+
+    private function configuredOffers(): array
+    {
+        $offers = config('identity.billing.offers', []);
+        foreach ($this->catalog->latest() as $key => $record) {
+            unset($offers[$key]);
+            if ($record['status'] === 'PUBLISHED') {
+                $offers[$key] = [...$record['terms'], 'version' => $record['version']];
+            }
+        }
+
+        return $offers;
+    }
+
+    public function companyOffers(int $company): array
+    {
+        $snapshot = $this->snapshot($company);
+        $subscription = $snapshot['subscription'];
+        $pending = DB::table('identity_billing_orders')->where('company_id', $company)
+            ->where('status', 'PENDING')->first(['reference', 'offer_key', 'amount_cents', 'currency', 'kind']);
+        if ($pending) {
+            return ['data' => [], 'pending_order' => $pending];
+        }
+
+        $today = CarbonImmutable::now('UTC')->toDateString();
+        $offers = [];
+        foreach ($this->configuredOffers() as $key => $configured) {
+            if (! preg_match('/^[A-Za-z0-9_-]{1,60}$/D', (string) $key)) {
+                continue;
+            }
+            $offer = $this->validateOffer($configured);
+            if (! $this->offerIsCurrent($offer, $today)) {
+                continue;
+            }
+            $applicable = match ($offer['kind']) {
+                'PLAN' => ! $snapshot['active'] || $subscription->plan === 'GRATUITO',
+                'RENEWAL' => $subscription && $subscription->plan === $offer['plan'],
+                default => $snapshot['active'],
+            };
+            if ($applicable) {
+                $offers[] = ['key' => (string) $key, 'currency' => 'PEN', ...array_intersect_key($offer, array_flip([
+                    'name', 'kind', 'description', 'plan', 'amount_cents', 'duration_days', 'limits', 'quantity', 'valid_from', 'valid_until', 'version',
+                ]))];
+            }
+        }
+
+        return ['data' => $offers, 'pending_order' => null];
+    }
+
     public function activateFreePlan(int $company): void
     {
         DB::transaction(function () use ($company): void {
@@ -51,19 +101,19 @@ class SubscriptionService
     {
         $result = [];
         $today = CarbonImmutable::now('UTC')->toDateString();
-        foreach (config('identity.billing.offers', []) as $key => $configured) {
+        foreach ($this->configuredOffers() as $key => $configured) {
             if (! is_string($key) || ! preg_match('/^[a-zA-Z0-9_-]+$/D', $key)
                 || ($configured['kind'] ?? null) !== 'PLAN' || ($configured['public'] ?? false) !== true
                 || ($configured['plan'] ?? null) === 'GRATUITO') {
                 continue;
             }
-            $offer = $this->offer($key);
+            $offer = $this->validateOffer($configured);
             if (! $this->offerIsCurrent($offer, $today)) {
                 continue;
             }
 
             $result[] = [
-                'key' => $key, 'name' => $offer['plan'], 'currency' => 'PEN',
+                'key' => $key, 'name' => $offer['name'] ?? $offer['plan'], 'currency' => 'PEN',
                 'amount_cents' => $offer['amount_cents'], 'duration_days' => $offer['duration_days'],
                 'limits' => array_intersect_key($offer['limits'], array_flip(['usuarios', 'lotes', 'analisis_ia'])),
                 'available' => true,
@@ -103,12 +153,9 @@ class SubscriptionService
         abort_unless($right && $currentCount < $right->limite, 403, 'User quota exhausted.');
     }
 
-    private function offer(string $key): array
+    private function validateOffer(mixed $offer): array
     {
-        $offer = config('identity.billing.offers.'.$key);
-        if (! is_array($offer)) {
-            throw ValidationException::withMessages(['offer_key' => 'Oferta no configurada.']);
-        }
+        abort_unless(is_array($offer), 503, 'Invalid configured offer.');
         $kind = $offer['kind'] ?? null;
         abort_unless(in_array($kind, ['PLAN', 'RENEWAL', 'USER_ADDON', 'AI_ADDON', 'LOT_ADDON'], true)
             && is_int($offer['amount_cents'] ?? null) && $offer['amount_cents'] >= 100 && $offer['amount_cents'] <= 999900, 503, 'Invalid configured offer.');
@@ -147,8 +194,7 @@ class SubscriptionService
 
     public function checkout(int $company, string $offerKey, User $actor): array
     {
-        $offer = $this->offer($offerKey);
-        $order = DB::transaction(function () use ($company, $offerKey, $offer, $actor): object {
+        $order = DB::transaction(function () use ($company, $offerKey, $actor): object {
             Empresa::where('estado', true)->lockForUpdate()->findOrFail($company);
             $existing = DB::table('identity_billing_orders')->where('company_id', $company)->where('status', 'PENDING')->first();
             if ($existing) {
@@ -156,6 +202,11 @@ class SubscriptionService
 
                 return $existing;
             }
+            $configured = $this->configuredOffers()[$offerKey] ?? null;
+            if ($configured === null) {
+                throw ValidationException::withMessages(['offer_key' => 'Oferta no disponible.']);
+            }
+            $offer = $this->validateOffer($configured);
             if (! $this->offerIsCurrent($offer, CarbonImmutable::now('UTC')->toDateString())) {
                 throw ValidationException::withMessages(['offer_key' => 'La oferta no está vigente.']);
             }

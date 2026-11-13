@@ -16,6 +16,13 @@ class SubscriptionController extends Controller
         return response()->json($subscriptions->snapshot($request->user()->id_empresa));
     }
 
+    public function offers(Request $request, SubscriptionService $subscriptions): JsonResponse
+    {
+        abort_unless($request->user()->id_empresa, 422, 'A company account is required.');
+
+        return response()->json($subscriptions->companyOffers($request->user()->id_empresa));
+    }
+
     public function checkout(Request $request, SubscriptionService $subscriptions): JsonResponse
     {
         abort_unless($request->user()->id_empresa, 422, 'A company account is required.');

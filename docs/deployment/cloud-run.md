@@ -61,6 +61,14 @@ Para probar un servicio privado usa autenticación IAM o `gcloud run services pr
 - Configura `IDENTITY_GATEWAY_CLIENT_IP_KEY` como un secreto aleatorio compartido exclusivamente por Gateway e Identity. En el Gateway, configura `GATEWAY_TRUSTED_PROXY_CIDRS` con las redes de los proxies de entrada que realmente controlan la cadena `X-Forwarded-For`. Evita rangos abiertos o confiar en un número fijo de saltos. Si el Gateway recibe conexiones directas, deja la lista vacía. Si el ingreso no ofrece una cadena verificable, aplica el límite por visitante en esa capa.
 - En `IDENTITY_BILLING_OFFERS` puedes indicar `description` y las fechas `valid_from` (inclusive) y `valid_until` (exclusiva), con formato `YYYY-MM-DD` en UTC. Las fechas son opcionales; cuando se configuran, el catálogo y las compras nuevas respetan esa vigencia.
 
+
+## Catálogo comercial de Identity
+
+- Aplica las migraciones de Identity antes de publicar la revisión que consulta el catálogo persistente.
+- Los superadministradores pueden crear y revisar ofertas mediante `/api/v1/identity/billing-offers`. Envía la versión actual al editar. Publicar, editar o archivar registra una nueva versión con el actor y la fecha.
+- Las claves de `IDENTITY_BILLING_OFFERS` siguen disponibles y quedan reservadas mientras estén configuradas. Para trasladar una oferta, coordina el retiro de esa clave de la configuración y la publicación de la versión administrada. Una orden pendiente conserva su referencia, su precio y sus cupos originales.
+- `GET /api/v1/identity/subscription/offers` devuelve las ofertas aplicables a la empresa o la orden pendiente que debe retomar.
+- Configura al menos cuatro cuentas en el plan gratuito si quieres que una empresa pueda operar con los cuatro roles del flujo de calidad. Ajusta los demás cupos según las condiciones aprobadas.
 ## Seguridad y pendientes
 
 - Mantén privados los cinco microservicios; solo publica las rutas necesarias mediante Gateway.
