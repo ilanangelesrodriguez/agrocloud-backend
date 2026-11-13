@@ -23,6 +23,7 @@ return [
     'billing' => [
         'url' => env('BILLING_SERVICE_URL', 'http://ms-billing:3000'),
         'api_key' => env('BILLING_SERVICE_API_KEY', ''),
+        'sandbox_checkout_enabled' => filter_var(env('IDENTITY_BILLING_SANDBOX_CHECKOUT_ENABLED', false), FILTER_VALIDATE_BOOL),
         'event_secret' => env('AGROCLOUD_EVENT_SECRET', ''),
         'offers' => json_decode((env('IDENTITY_BILLING_OFFERS') ?: '{}'), true, 512, JSON_THROW_ON_ERROR),
     ],

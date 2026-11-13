@@ -233,7 +233,7 @@ class SubscriptionService
         abort_unless(strlen($key) >= 32 && filter_var($url, FILTER_VALIDATE_URL)
             && (str_starts_with($url, 'https://') || app()->environment('local', 'testing')), 503, 'Configure Billing connection.');
         try {
-            $response = Http::withHeaders(['X-API-Key' => $key])->acceptJson()->withoutRedirecting()->connectTimeout(3)->timeout(15)
+            $response = Http::withHeaders(['X-Service-Key' => $key])->acceptJson()->withoutRedirecting()->connectTimeout(3)->timeout(15)
                 ->post($url.'/api/v1/orders', ['externalReference' => $order->reference, 'companyId' => $company,
                     'kind' => $order->kind, 'amountCents' => $order->amount_cents, 'currency' => $order->currency,
                     'customerEmail' => $order->customer_email, 'description' => 'AgroCloud '.$order->offer_key]);
