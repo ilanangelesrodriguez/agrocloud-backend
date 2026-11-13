@@ -75,6 +75,6 @@ class BillingOfferController
             $terms['quantity'] = (int) $terms['quantity'];
         }
 
-        return response()->json(['data' => $catalog->append($key, $version, $terms, $status, $request->user()->getKey())], 201);
+        return response()->json(['data' => $catalog->append($key, $version, $terms, $status, $request->user()->getKey())], $version === 0 ? 201 : 200);
     }
 }
