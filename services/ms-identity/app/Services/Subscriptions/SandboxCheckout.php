@@ -36,7 +36,56 @@ final class SandboxCheckout
             'currency' => $order->currency,
             // Only the signed Billing -> Identity event can move this to PAID.
             'status' => $order->status,
+            'payment_state' => $this->paymentState($order),
         ];
+    }
+
+    /** @return array{string, string} */
+    private function billingConnection(): array
+    {
+        $url = rtrim((string) config('identity.billing.url'), '/');
+        $key = (string) config('identity.billing.api_key');
+        abort_unless(strlen($key) >= 32 && filter_var($url, FILTER_VALIDATE_URL)
+            && (str_starts_with($url, 'https://') || app()->environment('local', 'testing')),
+            503, 'La conexión segura con Billing no está configurada.');
+
+        return [$url, $key];
+    }
+
+    private function paymentState(object $order): string
+    {
+        if ($order->status === 'PAID') {
+            return 'CONFIRMED';
+        }
+        if ($order->status !== 'PENDING' || config('identity.billing.sandbox_checkout_enabled') !== true) {
+            return 'UNAVAILABLE';
+        }
+
+        try {
+            [$url, $key] = $this->billingConnection();
+            $response = app(BillingHttpClient::class)->request($url, $key)->timeout(5)
+                ->get($url.'/api/v1/payments/'.$order->reference);
+        } catch (ConnectionException|\Symfony\Component\HttpKernel\Exception\HttpException) {
+            return 'UNAVAILABLE';
+        }
+
+        $payment = $response->json('data');
+        if (! $response->ok() || ! is_array($payment) || ($payment['orderReference'] ?? null) !== $order->reference
+            || ! array_key_exists('lastAttempt', $payment)) {
+            return 'UNAVAILABLE';
+        }
+
+        return match ($payment['status'] ?? null) {
+            'PAID' => 'AWAITING_CONFIRMATION',
+            'PROCESSING' => 'PROCESSING',
+            'UNKNOWN' => 'RECONCILIATION_REQUIRED',
+            'PENDING' => match ($payment['lastAttempt']) {
+                null => 'READY',
+                'DECLINED' => 'DECLINED',
+                default => 'RECONCILIATION_REQUIRED',
+            },
+            default => 'UNAVAILABLE',
+        };
     }
 
     public function charge(int $company, string $reference, string $tokenId): array
@@ -50,11 +99,7 @@ final class SandboxCheckout
         abort_unless($order->status === 'PENDING', 409,
             'La orden ya no está pendiente. Comprueba su estado antes de continuar.');
 
-        $url = rtrim((string) config('identity.billing.url'), '/');
-        $key = (string) config('identity.billing.api_key');
-        abort_unless(strlen($key) >= 32 && filter_var($url, FILTER_VALIDATE_URL)
-            && (str_starts_with($url, 'https://') || app()->environment('local', 'testing')),
-            503, 'La conexión segura con Billing no está configurada.');
+        [$url, $key] = $this->billingConnection();
 
         try {
             $response = app(BillingHttpClient::class)->request($url, $key)->timeout(25)
