@@ -18,6 +18,7 @@ export const envSchema = Joi.object({
   CULQI_API_URL: Joi.string().valid('https://api.culqi.com/v2').default('https://api.culqi.com/v2'),
   CULQI_WEBHOOK_TOKEN: Joi.string().min(32).required(),
   AGROCLOUD_EVENT_URL: Joi.string().allow('').optional(),
+  IDENTITY_CLOUD_RUN_AUDIENCE: Joi.string().allow('').default(''),
   AGROCLOUD_EVENT_SECRET: Joi.string().min(32).required(),
   OUTBOX_TIMER_ENABLED: Joi.boolean().default(true),
   OUTBOX_INTERVAL_MS: Joi.number().min(5000).default(30000),

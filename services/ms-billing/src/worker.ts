@@ -19,6 +19,10 @@ async function main(): Promise<void> {
       throw new Error('Outbox worker requires AGROCLOUD_EVENT_URL');
     }
     const outbox = app.get(OutboxService);
+    if (process.argv.includes('--once')) {
+      await outbox.dispatchDue();
+      return;
+    }
     while (!stop.signal.aborted) {
       try { await outbox.dispatchDue(); }
       catch { console.error('Outbox dispatch failed; retrying after interval'); }

@@ -93,6 +93,27 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     return { attempted: due.length };
   }
 
+  private async identityToken(audience: string): Promise<string> {
+    const url = new URL(
+      'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity',
+    );
+    url.searchParams.set('audience', audience);
+    const response = await fetch(url, {
+      headers: { 'Metadata-Flavor': 'Google' },
+      redirect: 'error',
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw new Error('Cloud Run authentication for Identity is unavailable');
+    }
+    const token = (await response.text()).trim();
+    if (!/^[\w-]+\.[\w-]+\.[\w-]+$/.test(token)) {
+      throw new Error('Cloud Run returned an invalid Identity token');
+    }
+    return token;
+  }
+
   private async dispatchOne(eventKey: string): Promise<void> {
     const url = this.config.get<string>('AGROCLOUD_EVENT_URL');
     if (!url) return;
@@ -113,15 +134,21 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
       .update(body)
       .digest('hex');
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-AgroCloud-Signature': 'sha256=' + signature,
+        'X-Event-Id': eventKey,
+      };
+      const audience = this.config.get<string>('IDENTITY_CLOUD_RUN_AUDIENCE');
+      if (audience) {
+        if (new URL(url).protocol !== 'https:') throw new Error('Identity IAM requires HTTPS');
+        headers['X-Serverless-Authorization'] = 'Bearer ' + await this.identityToken(audience);
+      }
       const response = await fetch(url, {
         method: 'POST',
         signal: AbortSignal.timeout(10000),
         redirect: 'error',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-AgroCloud-Signature': `sha256=${signature}`,
-          'X-Event-Id': eventKey,
-        },
+        headers,
         body,
       });
       await response.body?.cancel();

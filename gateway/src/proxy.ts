@@ -89,6 +89,14 @@ export function configureProxy(app: NestExpressApplication): void {
       }
       const normalized = '/' + segments.join('/');
       const query = req.url.slice(path.length);
+      if (service === 'billing') {
+        const health = ['GET', 'HEAD'].includes(req.method) && ['/health', '/ready'].includes(path);
+        const webhook = req.method === 'POST' && query === '' && /^\/webhooks\/culqi\/[A-Za-z0-9_-]{32,}$/.test(path);
+        if (!health && !webhook) {
+          proxyError(res, 404, 'RESOURCE_NOT_FOUND', 'Not found');
+          return;
+        }
+      }
       let upstreamPath = `/api/v1${req.url.startsWith('/') ? req.url : '/' + req.url}`;
       if (
         ['GET', 'HEAD'].includes(req.method) &&

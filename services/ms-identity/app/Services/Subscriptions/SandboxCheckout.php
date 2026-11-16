@@ -4,7 +4,6 @@ namespace App\Services\Subscriptions;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 
 /**
  * Company-scoped, sandbox-only bridge to private ms-billing.
@@ -58,8 +57,7 @@ final class SandboxCheckout
             503, 'La conexión segura con Billing no está configurada.');
 
         try {
-            $response = Http::withHeaders(['X-Service-Key' => $key])
-                ->acceptJson()->withoutRedirecting()->connectTimeout(3)->timeout(25)
+            $response = app(BillingHttpClient::class)->request($url, $key)->timeout(25)
                 ->post($url.'/api/v1/payments/charges', [
                     'externalReference' => $order->reference,
                     'tokenId' => $tokenId,
