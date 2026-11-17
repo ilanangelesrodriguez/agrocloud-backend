@@ -5,7 +5,7 @@ AGROCLOUD
 
 {!! $lead !!}
 
-{!! $message !!}
+{!! $bodyText !!}
 
 @if ($detailText)
 {!! $detailLabel !!}:

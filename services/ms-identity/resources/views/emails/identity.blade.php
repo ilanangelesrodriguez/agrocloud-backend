@@ -54,7 +54,7 @@
                                         <p style="margin:0 0 17px;font-size:11px;font-weight:800;line-height:16px;color:#128864;letter-spacing:1.65px;">{{ $eyebrow }}</p>
                                         <h1 class="email-title" style="margin:0 0 18px;font-size:31px;line-height:39px;letter-spacing:-0.9px;color:#10283a;font-weight:800;">{{ $headline }}</h1>
                                         <p style="margin:0 0 12px;color:#1f3644;font-size:17px;line-height:27px;font-weight:700;">{{ $lead }}</p>
-                                        <p style="margin:0;color:#4a6271;font-size:15px;line-height:26px;">{{ $message }}</p>
+                                        <p style="margin:0;color:#4a6271;font-size:15px;line-height:26px;">{{ $bodyText }}</p>
 
                                         @if ($detailText)
                                         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:24px;border-collapse:separate;border-spacing:0;background:#f4f8fa;border-left:4px solid #20c68d;border-radius:6px;">

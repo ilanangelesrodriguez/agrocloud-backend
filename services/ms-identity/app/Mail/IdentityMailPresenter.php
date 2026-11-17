@@ -129,6 +129,9 @@ final class IdentityMailPresenter
             $presentation['actionLabel'] = '';
         }
 
+        $presentation['bodyText'] = $presentation['message'];
+        unset($presentation['message']);
+
         return [
             ...$presentation,
             'actionUrl' => $actionUrl,
