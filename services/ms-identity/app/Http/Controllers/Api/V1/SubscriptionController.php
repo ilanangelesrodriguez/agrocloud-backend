@@ -39,6 +39,13 @@ class SubscriptionController extends Controller
         return response()->json($checkout->status($request->user()->id_empresa, $reference));
     }
 
+    public function reconcileOrder(Request $request, string $reference, SandboxCheckout $checkout): JsonResponse
+    {
+        abort_unless($request->user()->id_empresa, 422, 'A company account is required.');
+
+        return response()->json($checkout->reconcile($request->user()->id_empresa, $reference));
+    }
+
     public function sandboxCharge(Request $request, string $reference, SandboxCheckout $checkout): JsonResponse
     {
         abort_unless($request->user()->id_empresa, 422, 'A company account is required.');

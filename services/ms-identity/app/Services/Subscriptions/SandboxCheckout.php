@@ -88,6 +88,26 @@ final class SandboxCheckout
         };
     }
 
+    public function reconcile(int $company, string $reference): array
+    {
+        abort_unless(config('identity.billing.sandbox_checkout_enabled') === true, 403);
+        $order = $this->ownedOrder($company, $reference);
+        if ($order->status === 'PAID') {
+            return $this->status($company, $reference);
+        }
+        abort_unless($order->status === 'PENDING', 409);
+        [$url, $key] = $this->billingConnection();
+        try {
+            $response = app(BillingHttpClient::class)->request($url, $key)->timeout(15)
+                ->post($url.'/api/v1/payments/'.$order->reference.'/reconcile');
+        } catch (ConnectionException) {
+            abort(503, 'No se pudo consultar la conciliación. La orden conserva su estado.');
+        }
+        abort_unless($response->successful(), 502, 'Billing no pudo verificar la operación.');
+
+        return $this->status($company, $reference);
+    }
+
     public function charge(int $company, string $reference, string $tokenId): array
     {
         abort_unless(config('identity.billing.sandbox_checkout_enabled') === true, 403,
