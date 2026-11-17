@@ -28,9 +28,9 @@ class AccountSecurity
             'id_usuario' => $userId, 'kind' => $kind, 'status' => 'queued', 'attempts' => 0,
             'created_at' => now(), 'updated_at' => now(),
         ]);
-        DB::afterCommit(function () use ($id, $address, $subject, $message): void {
+        DB::afterCommit(function () use ($id, $address, $subject, $message, $kind): void {
             try {
-                SendIdentityMail::dispatch($id, $address, $subject, $message);
+                SendIdentityMail::dispatch($id, $address, $subject, $message, $kind);
             } catch (\Throwable $error) {
                 DB::table('security_mail_attempts')->where('id', $id)->update(['status' => 'failed', 'updated_at' => now()]);
                 report($error);
