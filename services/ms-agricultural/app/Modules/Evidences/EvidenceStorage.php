@@ -2,6 +2,7 @@
 
 namespace App\Modules\Evidences;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
@@ -15,6 +16,9 @@ class EvidenceStorage
 
     public function store(UploadedFile $file, int $company, int $inspection): string
     {
+        if (getenv('K_SERVICE') && config('agricultural_storage.driver') === 'local') {
+            throw new RuntimeException('Configure almacenamiento persistente Cloudinary para las evidencias en Cloud Run.');
+        }
         $name = Str::uuid().'.'.$file->extension();
 
         return match (config('agricultural_storage.driver')) {
@@ -51,7 +55,7 @@ class EvidenceStorage
                     'overwrite' => 'false',
                 ]);
             $uploadStatus = $response->status();
-        } catch (\Illuminate\Http\Client\ConnectionException) {
+        } catch (ConnectionException) {
             $uploadStatus = null;
         }
 

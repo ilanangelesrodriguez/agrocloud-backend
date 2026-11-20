@@ -6,6 +6,7 @@ import { boolean, record, strings } from '../../common/validation.js';
 
 export const OPTIONAL_KINDS = [
   'LOTE_REGISTRADO',
+  'MUESTREO_REGISTRADO',
   'LOTE_RECIBIDO',
   'INSPECCION_ASIGNADA',
   'INSPECCION_VALIDADA',
@@ -30,6 +31,7 @@ export function channels(
   const muted =
     optional &&
     preferences.some((row) => row.kind === kind && !row.inbox_enabled);
+  if (kind === 'MUESTREO_REGISTRADO') return { inbox: !muted, email: false };
   const email = preferences.some(
     (row) => row.kind === '*' && row.email_enabled,
   );

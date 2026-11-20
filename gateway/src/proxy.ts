@@ -90,9 +90,39 @@ export function configureProxy(app: NestExpressApplication): void {
       const normalized = '/' + segments.join('/');
       const query = req.url.slice(path.length);
       if (service === 'billing') {
-        const health = ['GET', 'HEAD'].includes(req.method) && ['/health', '/ready'].includes(path);
-        const webhook = req.method === 'POST' && query === '' && /^\/webhooks\/culqi\/[A-Za-z0-9_-]{32,}$/.test(path);
+        const health =
+          ['GET', 'HEAD'].includes(req.method) &&
+          ['/health', '/ready'].includes(path);
+        const webhook =
+          req.method === 'POST' &&
+          query === '' &&
+          /^\/webhooks\/culqi\/[A-Za-z0-9_-]{32,}$/.test(path);
         if (!health && !webhook) {
+          proxyError(res, 404, 'RESOURCE_NOT_FOUND', 'Not found');
+          return;
+        }
+      }
+      if (service === 'ai') {
+        const allowed =
+          [
+            '/',
+            '/health',
+            '/ready',
+            '/model',
+            '/model/versions',
+            '/model/evaluation',
+            '/model/classes',
+            '/model/confusion-matrix',
+            '/stats/overview',
+            '/stats/classes',
+            '/stats/errors',
+            '/stats/daily',
+            '/inferences',
+          ].includes(normalized) ||
+          /^\/inferences\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            normalized,
+          );
+        if (!['GET', 'HEAD'].includes(req.method) || !allowed) {
           proxyError(res, 404, 'RESOURCE_NOT_FOUND', 'Not found');
           return;
         }
@@ -151,13 +181,17 @@ export function configureProxy(app: NestExpressApplication): void {
         const signature = createHmac('sha256', signingKey)
           .update([requestId, timestamp, clientIp].join('\n'))
           .digest('hex');
-        headers['x-agrocloud-client-ip'] = [timestamp, clientIp, signature].join(';');
+        headers['x-agrocloud-client-ip'] = [
+          timestamp,
+          clientIp,
+          signature,
+        ].join(';');
       }
 
       if (process.env.K_SERVICE) {
         try {
           const metadataUrl = new URL(
-            'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity'
+            'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity',
           );
           metadataUrl.searchParams.set('audience', base.origin);
 
@@ -176,7 +210,12 @@ export function configureProxy(app: NestExpressApplication): void {
           headers['x-serverless-authorization'] = `Bearer ${token}`;
         } catch {
           if (!res.headersSent && !res.destroyed) {
-            proxyError(res, 503, 'IDENTITY_TOKEN_UNAVAILABLE', 'Service authentication unavailable');
+            proxyError(
+              res,
+              503,
+              'IDENTITY_TOKEN_UNAVAILABLE',
+              'Service authentication unavailable',
+            );
           }
           return;
         }

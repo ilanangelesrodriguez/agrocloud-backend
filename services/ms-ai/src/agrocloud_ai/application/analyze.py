@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from agrocloud_ai.application.ports import InferenceProvider, ImageStorage
 from agrocloud_ai.core.exceptions import InvalidProviderResponse, InferenceProviderError, StorageError
 from agrocloud_ai.core.settings import Settings
+from agrocloud_ai.domain.evaluation import evaluation_matches
 from agrocloud_ai.domain.schemas import AnalysisResult, PerformanceTiming
 from agrocloud_ai.domain.vision import annotate, load_image, normalize, quality_report, summarize
 from agrocloud_ai.infrastructure.persistence.models import DetectedObject, InferenceRun
@@ -27,7 +28,7 @@ async def analyze_image(raw: bytes, settings: Settings, predictor: InferenceProv
     img_quality = quality_report(img)
     image_prep_ms = round((time.perf_counter() - started) * 1000)
     request_id = str(uuid4())
-    run = InferenceRun(request_id=request_id, model_id=settings.roboflow_model_id,
+    run = InferenceRun(request_id=request_id, threshold=settings.min_confidence, model_id=settings.roboflow_model_id,
                        trained_model_id=settings.roboflow_trained_model_id,
                        image_sha256=sha256(raw).hexdigest(), image_source=source,
                        status="processing")
@@ -51,6 +52,8 @@ async def analyze_image(raw: bytes, settings: Settings, predictor: InferenceProv
             request_id=request_id,
             model_id=settings.roboflow_model_id,
             trained_model_id=settings.roboflow_trained_model_id,
+            dataset_version=2 if evaluation_matches(settings.roboflow_model_id, settings.roboflow_trained_model_id, settings.roboflow_mode, settings.roboflow_workspace) else None,
+            model_family="RF-DETR Small" if evaluation_matches(settings.roboflow_model_id, settings.roboflow_trained_model_id, settings.roboflow_mode, settings.roboflow_workspace) else None,
             threshold=settings.min_confidence,
             image_sha256=run.image_sha256,
             created_at=datetime.now(timezone.utc),

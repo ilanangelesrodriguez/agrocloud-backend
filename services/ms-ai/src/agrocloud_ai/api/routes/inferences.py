@@ -1,5 +1,7 @@
 """Historial técnico y acceso protegido a imágenes anotadas locales."""
 
+from datetime import datetime, timedelta, timezone
+from typing import Literal
 from uuid import UUID
 from urllib.parse import urlsplit
 
@@ -18,21 +20,20 @@ from agrocloud_ai.infrastructure.persistence.database import get_db
 from agrocloud_ai.infrastructure.persistence.models import InferenceRun
 
 
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
-from agrocloud_ai.core.settings import Settings, get_settings
-from agrocloud_ai.domain.schemas import InferencePage, InferenceItem, AnalysisResult
-from agrocloud_ai.infrastructure.persistence.database import get_db
-from agrocloud_ai.infrastructure.persistence.models import InferenceRun
-
 router = APIRouter(prefix="/inferences", tags=["Historial técnico"])
 
 
 @router.get("", response_model=InferencePage, summary="Ejecuciones recientes del microservicio")
 def list_runs(offset: int = Query(0, ge=0), limit: int = Query(30, ge=1, le=100),
-              db: Session = Depends(get_db)):
-    total = db.scalar(select(func.count(InferenceRun.id))) or 0
-    runs = db.scalars(select(InferenceRun).order_by(InferenceRun.id.desc()).offset(offset).limit(limit)).all()
+              days: int = Query(30, ge=1, le=365), model_id: str | None = Query(None, min_length=1, max_length=200),
+              status: Literal["processing", "completed", "failed"] | None = Query(None), db: Session = Depends(get_db)):
+    filters = [InferenceRun.created_at >= datetime.now(timezone.utc) - timedelta(days=days)]
+    if model_id:
+        filters.append(InferenceRun.model_id == model_id)
+    if status:
+        filters.append(InferenceRun.status == status)
+    total = db.scalar(select(func.count(InferenceRun.id)).where(*filters)) or 0
+    runs = db.scalars(select(InferenceRun).where(*filters).order_by(InferenceRun.id.desc()).offset(offset).limit(limit)).all()
     return InferencePage(total=total, offset=offset, limit=limit,
         items=[InferenceItem.model_validate({field: getattr(run, field) for field in InferenceItem.model_fields})
                for run in runs])

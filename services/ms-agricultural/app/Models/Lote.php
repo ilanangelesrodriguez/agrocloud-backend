@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Modules\Catalogs\CatalogService;
+use App\Modules\Inspections\InspectionWorkflow;
 use App\Shared\Auth\Actor;
 use App\Shared\Tenancy\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -32,15 +34,18 @@ class Lote extends Model
         $decision = $inspection?->latestDecision;
         $blocked = Incidencia::where('id_lote', $this->getKey())->whereIn('gravedad', ['ALTA', 'CRITICA'])->where('estado', '<>', 'CERRADA')->count();
         $validated = $inspection?->estado === 'VALIDADA';
-        $evidenceComplete = $inspection && $sample->frutos()->exists()
-            && ! $sample->frutos()->whereDoesntHave('evidencias', fn ($query) => $query->where('id_inspeccion', $inspection->getKey())
-                ->where(fn ($query) => $query->whereNull('pertinencia')->orWhere('pertinencia', '<>', 'INVALIDA')))->exists();
+        $progress = $inspection ? app(InspectionWorkflow::class)->reviewProgress($inspection) : null;
+        $evidenceComplete = $progress && $progress['sampled_fruits'] > 0 && $progress['captured_fruits'] === $progress['sampled_fruits'];
+        $humanComplete = $progress && $progress['complete'];
+        $aiIdle = $progress && $progress['ai_pending'] === 0;
         $final = in_array($decision?->decision, ['APROBADO', 'RECHAZADO'], true);
         $stages = [
             ['key' => 'reception', 'label' => 'Recepción', 'done' => $this->recepcion()->exists()],
             ['key' => 'sampling', 'label' => 'Muestreo', 'done' => $sample !== null],
             ['key' => 'inspection', 'label' => 'Inicio de inspección', 'done' => $inspection !== null],
-            ['key' => 'evidence', 'label' => 'Evidencias', 'done' => $evidenceComplete],
+            ['key' => 'evidence', 'label' => 'Captura de evidencias', 'done' => $evidenceComplete],
+            ['key' => 'analysis', 'label' => 'Procesamiento IA (opcional)', 'done' => (bool) ($evidenceComplete && $aiIdle)],
+            ['key' => 'review', 'label' => 'Revisión humana', 'done' => (bool) $humanComplete],
             ['key' => 'validation', 'label' => 'Validación', 'done' => $validated],
             ['key' => 'decision', 'label' => 'Dictamen', 'done' => $final],
         ];
@@ -51,7 +56,9 @@ class Lote extends Model
             'sampling' => ['Registrar muestreo', '/lots/'.$this->getKey().'/sampling', 'muestreos.crear'],
             'inspection' => ['Iniciar inspección', $inspectionUrl, 'inspecciones.crear'],
             'evidence' => ['Completar y revisar evidencias', $inspectionUrl.'/evidences', 'inspecciones.capturar'],
-            'validation' => ['Revisar evidencias y validar inspección', $inspectionUrl, 'inspecciones.validar'],
+            'analysis' => ['Esperar el análisis de IA o continuar mediante revisión manual justificada', $inspectionUrl.'/evidences', 'inspecciones.validar'],
+            'review' => ['Revisar detecciones y confirmar los hallazgos', $inspectionUrl.'/evidences', 'inspecciones.validar'],
+            'validation' => ['Validar inspección', $inspectionUrl, 'inspecciones.validar'],
             'decision' => [$decision?->decision === 'OBSERVADO' ? 'Resolver observación y emitir dictamen' : 'Emitir dictamen', $inspectionUrl, 'calidad.clasificar'],
         ];
         $reasons = $blocked ? ['Hay '.$blocked.' incidencia(s) alta(s) o crítica(s) pendientes de cierre.'] : [];
@@ -66,14 +73,31 @@ class Lote extends Model
         }
         $action = $actions[$stage] ?? null;
         $expectedRole = match ($stage) {
-            'reception' => 'RECEPCION', 'sampling', 'inspection', 'evidence', 'validation' => 'INSPECTOR',
+            'reception' => 'RECEPCION', 'sampling', 'inspection', 'evidence', 'analysis', 'review', 'validation' => 'INSPECTOR',
             'decision' => 'SUPERVISOR', default => null,
         };
         $canExecute = $action && $actor->hasPermission($action[2]) && ($expectedRole === null || $actor->rol->codigo === $expectedRole);
+        if ($inspection && in_array($stage, ['evidence', 'analysis', 'review', 'validation'], true)
+            && $inspection->id_inspector !== null && $inspection->id_inspector !== $actor->id_usuario) {
+            $canExecute = false;
+            $reasons[] = 'Esta inspección está asignada a otro inspector.';
+        }
+        if ($stage === 'decision' && $inspection?->id_inspector === $actor->id_usuario) {
+            $canExecute = false;
+            $reasons[] = 'El dictamen requiere un supervisor distinto del inspector.';
+        }
+        if ($stage === 'analysis') {
+            $canExecute = false;
+            $reasons[] = 'Hay análisis en cola o en procesamiento. La revisión estará disponible cuando finalicen o sean cancelados.';
+        }
+        if ($stage === 'sampling' && ! app(CatalogService::class)->hasProcedureFor($this)) {
+            $canExecute = false;
+            $reasons[] = 'El administrador debe habilitar un procedimiento y sus maestros para este producto.';
+        }
 
         return ['currentStage' => $stage, 'nextAction' => $action ? ['label' => $action[0], 'href' => $action[1], 'permission' => $action[2], 'canExecute' => $canExecute] : null,
-            'blockingReasons' => $reasons, 'samplingId' => $sample?->getKey(), 'inspectionId' => $inspection?->getKey(),
-            'latestDecision' => DictamenCalidad::where('id_lote', $this->getKey())->orderByDesc('id_dictamen')->value('decision'), 'stages' => $stages];
+            'blockingReasons' => $reasons, 'evidenceProgress' => $progress, 'samplingId' => $sample?->getKey(), 'inspectionId' => $inspection?->getKey(),
+            'latestDecision' => DictamenCalidad::where('id_lote', $this->getKey())->orderByDesc('id_dictamen')->value('decision'), 'stages' => array_map(fn ($item) => [...$item, 'status' => $item['key'] === 'analysis' && $item['done'] && ($progress['ai_completed'] ?? 0) === 0 ? 'manual' : ($item['done'] ? 'completed' : ($item['key'] === $stage ? 'in_progress' : 'pending'))], $stages)];
     }
 
     public function productor(): BelongsTo

@@ -3,16 +3,21 @@
 namespace App\Modules\Reports;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AgriculturalResource;
 use App\Models\DictamenCalidad;
 use App\Models\EvidenciaInspeccion;
 use App\Models\HallazgoManual;
 use App\Models\Incidencia;
 use App\Models\Inspeccion;
 use App\Models\Lote;
+use App\Models\Muestreo;
+use App\Models\Productor;
 use App\Models\ValidacionDeteccion;
+use App\Modules\Catalogs\CatalogService;
 use App\Shared\Tenancy\CompanyContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -36,6 +41,15 @@ class ReportController extends Controller
             foreach (Lote::where('estado', 'RECIBIDO')->whereDoesntHave('muestreos')->orderBy('id_lote')->limit(5)->get() as $lot) {
                 if ($actor->rol->codigo === 'INSPECTOR') {
                     $tasks[] = ['label' => 'Muestrear '.$lot->codigo_lote, 'href' => '/lots/'.$lot->getKey().'/sampling'];
+                }
+            }
+        }
+        if ($actor->hasPermission('inspecciones.crear')) {
+            $waiting = Muestreo::whereDoesntHave('inspecciones')->whereHas('lote', fn ($q) => $q->where('estado', 'EN_MUESTREO'));
+            $metrics[] = ['key' => 'inspection_start', 'label' => 'Por iniciar inspección', 'value' => (clone $waiting)->count(), 'href' => '/samplings'];
+            if ($actor->rol->codigo === 'INSPECTOR') {
+                foreach ((clone $waiting)->orderBy('id_muestreo')->limit(5)->get() as $sample) {
+                    $tasks[] = ['label' => 'Iniciar inspección del muestreo #'.$sample->getKey(), 'href' => '/samplings/'.$sample->getKey()];
                 }
             }
         }
@@ -69,6 +83,11 @@ class ReportController extends Controller
                 }
             }
         }
+        if ($actor->hasPermission('calidad.clasificar') && $actor->rol->codigo === 'SUPERVISOR') {
+            foreach (Inspeccion::decisionStatus('OBSERVED')->where(fn ($q) => $q->whereNull('id_inspector')->orWhere('id_inspector', '<>', $actor->id_usuario))->orderBy('id_inspeccion')->limit(5)->get() as $inspection) {
+                $tasks[] = ['label' => 'Resolver observación de la inspección #'.$inspection->getKey(), 'href' => '/inspections/'.$inspection->getKey()];
+            }
+        }
         if ($actor->hasPermission('incidencias.ver')) {
             $incidents = Incidencia::where('estado', '<>', 'CERRADA')->when(! $actor->hasPermission('incidencias.cerrar'), fn ($query) => $query->where('responsable', $actor->id_usuario));
             $metrics[] = ['key' => 'incidents', 'label' => 'Incidencias por atender', 'value' => (clone $incidents)->count(), 'href' => '/incidents'];
@@ -82,6 +101,23 @@ class ReportController extends Controller
         }
 
         return response()->json(['metrics' => $metrics, 'tasks' => $tasks]);
+    }
+
+    public function producers(): AnonymousResourceCollection
+    {
+        return AgriculturalResource::collection(Productor::orderBy('nombre_razon_social')->paginate(50));
+    }
+
+    public function setup(CatalogService $catalog): JsonResponse
+    {
+        $checks = [];
+        foreach (['producto' => 'Productos', 'metodo' => 'Métodos de muestreo', 'categoria' => 'Categorías comerciales', 'motivo' => 'Motivos de observación o rechazo'] as $type => $label) {
+            $checks[] = ['key' => $type, 'label' => $label, 'done' => $catalog->options($type)->isNotEmpty(), 'href' => '/settings/catalogs/'.$type];
+        }
+        $checks[] = ['key' => 'procedures', 'label' => 'Procedimiento autorizado disponible', 'done' => $catalog->availableProcedures()->exists(), 'href' => '/settings/sampling-procedures'];
+        $checks[] = ['key' => 'producers', 'label' => 'Primer productor registrado', 'done' => Productor::exists(), 'href' => '/producers'];
+
+        return response()->json(['checks' => $checks]);
     }
 
     public function summary(Request $request): JsonResponse

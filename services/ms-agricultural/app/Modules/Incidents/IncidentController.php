@@ -66,6 +66,7 @@ class IncidentController extends Controller
             $incident = Incidencia::create([...$data, 'id_lote' => $lot, 'estado' => 'ABIERTA']);
             if (in_array($data['gravedad'], ['ALTA', 'CRITICA'], true) && $record->estado === 'CLASIFICADO') {
                 $record->update(['estado' => 'RETENIDO']);
+                EventOutbox::add('lot.retained', ['lotId' => $lot]);
             }
             Traceability::record($incident, $lot, 'INCIDENCIA_ABIERTA', $data);
             EventOutbox::add('incident.opened', ['lotId' => $lot, 'incidentId' => $incident->getKey(), 'severity' => $data['gravedad'], 'recipientIds' => [(int) $data['responsable']], 'recipientPermissions' => ['incidencias.cerrar']]);
@@ -98,9 +99,11 @@ class IncidentController extends Controller
             $blocked = Incidencia::where('id_lote', $lot->getKey())->whereIn('gravedad', ['ALTA', 'CRITICA'])->where('estado', '<>', 'CERRADA')->exists();
             if ($blocked && $lot->estado === 'CLASIFICADO') {
                 $lot->update(['estado' => 'RETENIDO']);
+                EventOutbox::add('lot.retained', ['lotId' => $lot->getKey()]);
             }
             if (! $blocked && $lot->estado === 'RETENIDO') {
                 $lot->update(['estado' => 'CLASIFICADO']);
+                EventOutbox::add('lot.released', ['lotId' => $lot->getKey()]);
             }
             Traceability::record($record, $lot->getKey(), 'INCIDENCIA_SEGUIMIENTO', $data);
             EventOutbox::add('incident.updated', ['lotId' => $lot->getKey(), 'incidentId' => $record->getKey(), 'status' => $data['estado'], 'recipientPermissions' => ['incidencias.cerrar']]);

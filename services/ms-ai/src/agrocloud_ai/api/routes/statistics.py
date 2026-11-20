@@ -9,21 +9,21 @@ router = APIRouter(prefix="/stats", tags=["Estadísticas técnicas"])
 
 
 @router.get("/overview", response_model=ServiceOverview, summary="Volumen, éxito y tiempos p50/p95")
-def get_overview(days: int = Query(30, ge=1, le=365), db: Session = Depends(get_db)):
-    return overview(db, days)
+def get_overview(days: int = Query(30, ge=1, le=365), model_id: str | None = Query(None, min_length=1, max_length=200), db: Session = Depends(get_db)):
+    return overview(db, days, model_id)
 
 
 @router.get("/classes", summary="Frecuencia de clases detectadas (no precisión)")
-def get_classes(days: int = Query(30, ge=1, le=365), db: Session = Depends(get_db)):
-    return {"days": days, "classes": class_frequency(db, days),
+def get_classes(days: int = Query(30, ge=1, le=365), model_id: str | None = Query(None, min_length=1, max_length=200), db: Session = Depends(get_db)):
+    return {"days": days, "classes": class_frequency(db, days, model_id),
             "note": "Son predicciones técnicas; no hallazgos confirmados."}
 
 
 @router.get("/errors", summary="Errores de inferencia agregados")
-def get_errors(days: int = Query(30, ge=1, le=365), db: Session = Depends(get_db)):
-    return {"days": days, "errors": error_frequency(db, days)}
+def get_errors(days: int = Query(30, ge=1, le=365), model_id: str | None = Query(None, min_length=1, max_length=200), db: Session = Depends(get_db)):
+    return {"days": days, "errors": error_frequency(db, days, model_id)}
 
 
 @router.get("/daily", summary="Ejecuciones por día UTC")
-def get_daily(days: int = Query(30, ge=1, le=365), db: Session = Depends(get_db)):
-    return {"timezone": "UTC", "days": days, "items": daily(db, days)}
+def get_daily(days: int = Query(30, ge=1, le=365), model_id: str | None = Query(None, min_length=1, max_length=200), db: Session = Depends(get_db)):
+    return {"timezone": "UTC", "days": days, "items": daily(db, days, model_id)}

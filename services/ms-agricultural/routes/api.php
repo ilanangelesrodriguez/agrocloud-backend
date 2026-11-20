@@ -8,6 +8,7 @@ use App\Modules\Lots\LotController;
 use App\Modules\Producers\ProducerController;
 use App\Modules\Quality\QualityController;
 use App\Modules\Receptions\ReceptionController;
+use App\Modules\Reports\AiReportController;
 use App\Modules\Reports\ReportController;
 use App\Modules\Sampling\SamplingController;
 use Illuminate\Http\JsonResponse;
@@ -61,6 +62,10 @@ Route::middleware(['throttle:agricultural-public', 'agricultural.auth', 'throttl
     Route::get('/incidents/{incident}/history', [IncidentController::class, 'history'])->whereNumber('incident')->middleware('agricultural.permission:incidencias.ver');
     Route::get('/lots/{lot}/incident-evidences', [IncidentController::class, 'evidences'])->whereNumber('lot')->middleware('agricultural.permission:incidencias.ver');
     Route::get('/production/lots', [LotController::class, 'released'])->middleware('agricultural.permission:produccion.ver');
+    Route::get('/setup', [ReportController::class, 'setup'])->middleware('agricultural.permission:empresa.editar');
+    Route::get('/reports/producers', [ReportController::class, 'producers'])->middleware('agricultural.permission:reportes.operativos');
+    Route::get('/reports/ai/producers', [AiReportController::class, 'producers'])->middleware('agricultural.permission:ia.reportes.ver');
+    Route::get('/reports/ai/{section}', [AiReportController::class, 'show'])->where('section', 'overview|classes|daily|models|validation')->middleware('agricultural.permission:ia.reportes.ver');
     Route::get('/dashboard', [ReportController::class, 'dashboard']);
     Route::get('/incidents', [IncidentController::class, 'index'])->middleware('agricultural.permission:incidencias.ver');
     Route::get('/lots/{lot}/incidents', [IncidentController::class, 'index'])->whereNumber('lot')->middleware('agricultural.permission:incidencias.ver');

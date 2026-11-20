@@ -18,8 +18,8 @@ async def lifespan(app:FastAPI):
     app.state.inference_gate=asyncio.Semaphore(settings.max_concurrent_inferences)
     yield
 
-app=FastAPI(title="AgroCloud AI · RF-DETR Small V2",version=__version__,
-    description=("API Python independiente de visión por computadora basada en RF-DETR Small V2. "
+app=FastAPI(title="AgroCloud AI · Visión por computadora",version=__version__,
+    description=("API Python independiente de visión por computadora. "
                  "Recibe SOLO imágenes y devuelve resultados técnicos; no gestiona empresas, "
                  "lotes, inspecciones, validaciones ni dictámenes. "
                  "Las métricas de evaluación Test y las métricas operativas son diferentes. "

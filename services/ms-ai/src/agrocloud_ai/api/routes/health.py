@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from sqlalchemy import text
+from sqlalchemy import text, select
+from agrocloud_ai.infrastructure.persistence.models import InferenceRun
 from agrocloud_ai.core.settings import Settings, get_settings
 from agrocloud_ai.infrastructure.persistence.database import build_session_factory
 from agrocloud_ai import __version__
@@ -25,15 +26,18 @@ def ready(settings: Settings = Depends(get_settings)):
     )
 
     db_ok = False
+    schema_ok = False
 
     try:
         with build_session_factory(settings.database_url)() as db:
             db.execute(text("SELECT 1"))
             db_ok = True
+            db.execute(select(InferenceRun.threshold).limit(0))
+            schema_ok = True
     except Exception:
         pass
 
-    ready_now = config_ok and db_ok
+    ready_now = config_ok and db_ok and schema_ok
 
     return JSONResponse(
         status_code=200 if ready_now else 503,
@@ -41,6 +45,7 @@ def ready(settings: Settings = Depends(get_settings)):
             "ready": ready_now,
             "configuration": config_ok,
             "database": db_ok,
+            "schema": schema_ok,
             "live_inference_checked": False
         }
     )

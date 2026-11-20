@@ -6,6 +6,7 @@ use App\Models\Lote;
 use App\Models\Muestreo;
 use App\Models\SamplingProcedure;
 use App\Modules\Catalogs\CatalogService;
+use App\Shared\Events\EventOutbox;
 use App\Shared\Events\Traceability;
 use App\Shared\Tenancy\CompanyContext;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,7 @@ class SamplingService
             abort_if(! $procedure && ! config('agricultural.manual_sampling_enabled'), 403, 'An authorized procedure is required.');
             $count = (int) $data['tamano_muestra'];
             abort_if($count > ($procedure?->max_frutos ?? config('agricultural.sampling_max_fruits')), 422, 'Sampling exceeds the procedure limit.');
-            abort_if($procedure?->producto && $procedure->producto !== $record->producto, 422, 'Procedure is for another product.');
+            abort_if($procedure && ($procedure->producto_id ? (int) $procedure->producto_id !== (int) $record->producto_id : ($procedure->producto && $procedure->producto !== $record->producto)), 422, 'Procedure is for another product.');
             abort_if($count > config('agricultural.sampling_warning_fruits') && ! filter_var($data['confirmar_carga'] ?? false, FILTER_VALIDATE_BOOL), 422, 'Confirm the high workload.');
             $snapshot = $procedure ? $procedure->only(['nombre', 'version', 'metodo', 'criterio_muestra', 'seleccion_frutos', 'max_frutos', 'tamano_recomendado']) : [];
             if (! $procedure) {
@@ -39,9 +40,10 @@ class SamplingService
             $population = isset($data['poblacion_estimada']) ? (int) $data['poblacion_estimada'] : null;
             abort_if($procedure?->requiere_poblacion && ! $population, 422, 'A documented population is required.');
             abort_if($population && ($count > $population || blank($data['fuente_poblacion'] ?? null)), 422, 'Invalid or undocumented population.');
-            $method = app(CatalogService::class)->validate(['metodo' => $procedure?->metodo ?? $data['metodo']], ['metodo' => 'metodo'])['metodo'];
+            $methodData = app(CatalogService::class)->validate(['metodo' => $procedure?->metodo ?? $data['metodo'], 'metodo_id' => $procedure?->metodo_id], ['metodo' => 'metodo']);
+            $method = $methodData['metodo'];
             $sampling = Muestreo::create(['id_lote' => $lot, 'id_inspector' => app(CompanyContext::class)->actor(), 'procedure_id' => $procedure?->getKey(),
-                'tamano_muestra' => $count, 'metodo' => $method, 'estado' => 'REGISTRADO', 'observaciones' => $data['observaciones'] ?? null,
+                'tamano_muestra' => $count, 'metodo' => $method, 'metodo_id' => $methodData['metodo_id'], 'estado' => 'REGISTRADO', 'observaciones' => $data['observaciones'] ?? null,
                 'protocolo' => [...$snapshot, 'modalidad' => $procedure ? 'AUTORIZADO' : 'MANUAL', 'motivo_desviacion' => $data['motivo_desviacion'] ?? null,
                     'poblacion_estimada' => $population, 'fuente_poblacion' => $data['fuente_poblacion'] ?? null]]);
             DB::insert("INSERT INTO frutos_muestra (id_empresa, id_muestreo, numero, codigo, created_at, updated_at)
@@ -49,6 +51,7 @@ class SamplingService
                 [app(CompanyContext::class)->company(), $sampling->getKey(), 'M'.$sampling->getKey(), now(), now(), $count]);
             $record->update(['estado' => 'EN_MUESTREO']);
             Traceability::record($sampling, $lot, 'MUESTREO_REGISTRADO', $sampling->protocolo);
+            EventOutbox::add('sampling.created', ['lotId' => $lot, 'samplingId' => $sampling->getKey()]);
 
             return $sampling;
         }, 3);

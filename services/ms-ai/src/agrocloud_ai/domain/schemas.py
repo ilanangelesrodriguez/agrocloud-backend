@@ -56,8 +56,8 @@ class AnalysisResult(BaseModel):
     status: Literal["completed"] = "completed"
     model_id: str
     trained_model_id: str
-    dataset_version: int = 2
-    model_family: str = "RF-DETR Small"
+    dataset_version: int | None = None
+    model_family: str | None = None
     threshold: float
     image_sha256: str
     created_at: datetime
@@ -70,6 +70,7 @@ class AnalysisResult(BaseModel):
 
 
 class InferenceItem(BaseModel):
+    threshold: float | None = None
     request_id: str
     status: str
     created_at: datetime
@@ -87,6 +88,7 @@ class InferencePage(BaseModel):
 
 
 class ServiceOverview(BaseModel):
+    processing: int = 0
     total: int
     completed: int
     failed: int

@@ -58,7 +58,7 @@ class CatalogController extends Controller
                     'motivo' => ['dictamen_calidad' => 'motivo'], default => [],
                 };
                 foreach ($references as $table => $column) {
-                    abort_if(DB::table($table)->where('id_empresa', $company)->whereRaw('LOWER(TRIM('.$column.')) = ?', [mb_strtolower(trim($item->nombre))])->exists(), 409,
+                    abort_if(DB::table($table)->where('id_empresa', $company)->when(in_array($column, ['producto', 'variedad', 'metodo'], true), fn ($q) => $q->whereNull($column.'_id'))->whereRaw('LOWER(TRIM('.$column.')) = ?', [mb_strtolower(trim($item->nombre))])->exists(), 409,
                         'No se puede renombrar un maestro en uso. Deshabilítalo y registra un valor nuevo para conservar el historial.');
                 }
             }
@@ -93,19 +93,29 @@ class CatalogController extends Controller
         $request->user()->requireRole('ADMIN');
         $data = $request->validate(['estado' => ['required', 'boolean']]);
         $company = app(CompanyContext::class)->company();
-        $item = DB::table('maestro_valores')->where('id', $catalog)->where(fn ($query) => $query->whereNull('id_empresa')->orWhere('id_empresa', $company))->first();
-        abort_unless($item, 404);
-        DB::table('maestro_empresa_config')->updateOrInsert(['id_empresa' => $company, 'maestro_id' => $catalog], ['estado' => $data['estado']]);
+        DB::transaction(function () use ($catalog, $company, $data): void {
+            $item = DB::table('maestro_valores')->where('id', $catalog)->where(fn ($query) => $query->whereNull('id_empresa')->orWhere('id_empresa', $company))->lockForUpdate()->first();
+            abort_unless($item, 404);
+            if (! $data['estado'] && in_array($item->tipo, ['metodo', 'producto'], true)) {
+                abort_if(SamplingProcedure::where('activo', true)->where(fn ($q) => $q->where($item->tipo.'_id', $item->id)->orWhere(fn ($q) => $q->whereNull($item->tipo.'_id')->where($item->tipo, $item->nombre)))->exists(), 409,
+                    'Reemplaza o desactiva primero los procedimientos activos que dependen de este maestro.');
+            }
+            DB::table('maestro_empresa_config')->updateOrInsert(['id_empresa' => $company, 'maestro_id' => $catalog], ['estado' => $data['estado']]);
+        }, 3);
 
         return response()->json(['updated' => true]);
     }
 
-    public function procedures(Request $request): AnonymousResourceCollection
+    public function procedures(Request $request, CatalogService $catalog): AnonymousResourceCollection
     {
-        $data = $request->validate(['producto' => ['nullable', 'string', 'max:150'], 'activo' => ['nullable', Rule::in(['true', 'false', '1', '0'])]]);
+        $data = $request->validate(['producto' => ['nullable', 'string', 'max:150'], 'producto_id' => ['nullable', 'integer', 'min:1'], 'activo' => ['nullable', Rule::in(['true', 'false', '1', '0'])]]);
+        $query = ($request->boolean('activo') && (isset($data['producto_id']) || isset($data['producto'])))
+            ? $catalog->applicableProcedures(isset($data['producto_id']) ? (int) $data['producto_id'] : null, $data['producto'] ?? null)
+            : SamplingProcedure::query()->when(isset($data['activo']), fn ($q) => $q->where('activo', $request->boolean('activo')))
+                ->when($data['producto_id'] ?? null, fn ($q, $id) => $q->where(fn ($q) => $q->whereNull('producto_id')->orWhere('producto_id', $id)))
+                ->when($data['producto'] ?? null, fn ($q, $name) => $q->where(fn ($q) => $q->whereNull('producto')->orWhere('producto', $name)));
 
-        return AgriculturalResource::collection(SamplingProcedure::when($data['producto'] ?? null, fn ($query, $product) => $query->where(fn ($query) => $query->whereNull('producto')->orWhere('producto', $product)))
-            ->when(isset($data['activo']), fn ($query) => $query->where('activo', filter_var($data['activo'], FILTER_VALIDATE_BOOL)))->orderByDesc('id')->paginate(25));
+        return AgriculturalResource::collection($query->orderByDesc('id')->paginate(25));
     }
 
     public function showProcedure(int $procedure): AgriculturalResource
@@ -116,9 +126,9 @@ class CatalogController extends Controller
     public function procedure(ProcedureRequest $request, CatalogService $catalog): AgriculturalResource
     {
         $request->user()->requireRole('ADMIN');
-        $data = $catalog->validate($request->validated(), ['metodo' => 'metodo', 'producto' => 'producto']);
-        abort_if(SamplingProcedure::where('nombre', $data['nombre'])->where('version', $data['version'])->exists(), 409, 'Procedure version already exists.');
-        $record = DB::transaction(function () use ($data): SamplingProcedure {
+        $record = DB::transaction(function () use ($request, $catalog): SamplingProcedure {
+            $data = $catalog->validate($request->validated(), ['metodo' => 'metodo', 'producto' => 'producto']);
+            abort_if(SamplingProcedure::where('nombre', $data['nombre'])->where('version', $data['version'])->exists(), 409, 'Procedure version already exists.');
             $record = SamplingProcedure::create($data);
             Traceability::record($record, null, 'PROCEDIMIENTO_CREADO', $data);
 
@@ -134,6 +144,9 @@ class CatalogController extends Controller
         $data = $request->validate(['activo' => ['required', 'boolean']]);
         $record = DB::transaction(function () use ($procedure, $data): SamplingProcedure {
             $record = SamplingProcedure::lockForUpdate()->findOrFail($procedure);
+            if ($data['activo']) {
+                app(CatalogService::class)->validate($record->only(['producto', 'producto_id', 'metodo', 'metodo_id']), ['producto' => 'producto', 'metodo' => 'metodo']);
+            }
             $record->update($data);
             Traceability::record($record, null, 'PROCEDIMIENTO_ESTADO', $data);
 

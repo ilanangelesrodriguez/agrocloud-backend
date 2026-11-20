@@ -2,7 +2,10 @@
 
 namespace App\Modules\Catalogs;
 
+use App\Models\Lote;
+use App\Models\SamplingProcedure;
 use App\Shared\Tenancy\CompanyContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,25 +22,55 @@ class CatalogService
             ->orderBy('nombre')->get();
     }
 
+    public function availableProcedures(): Builder
+    {
+        $methods = $this->options('metodo');
+        $products = $this->options('producto');
+
+        return SamplingProcedure::where('activo', true)
+            ->where(fn ($q) => $q->whereIn('metodo_id', $methods->pluck('id'))->orWhere(fn ($q) => $q->whereNull('metodo_id')->whereIn('metodo', $methods->pluck('nombre'))))
+            ->where(fn ($q) => $q->where(fn ($q) => $q->whereNull('producto_id')->whereNull('producto'))
+                ->orWhereIn('producto_id', $products->pluck('id'))->orWhere(fn ($q) => $q->whereNull('producto_id')->whereIn('producto', $products->pluck('nombre'))));
+    }
+
+    public function applicableProcedures(?int $productId, ?string $product): Builder
+    {
+        return $this->availableProcedures()->where(fn ($query) => $query->where(fn ($q) => $q->whereNull('producto_id')->whereNull('producto'))
+            ->when($productId, fn ($q) => $q->orWhere('producto_id', $productId))
+            ->orWhere(fn ($q) => $q->whereNull('producto_id')->where('producto', $product)));
+    }
+
+    public function hasProcedureFor(Lote $lot): bool
+    {
+        return $this->applicableProcedures($lot->producto_id, $lot->producto)->exists();
+    }
+
     public function validate(array $data, array $fields): array
     {
         foreach ($fields as $field => $type) {
-            if (! isset($data[$field]) || $data[$field] === '') {
+            if (! isset($data[$field]) && ! isset($data[$field.'_id'])) {
                 continue;
             }
-            $parents = $type === 'variedad' ? $this->options('producto')->keyBy('id') : collect();
-            $match = $this->options($type)->first(fn ($option) => mb_strtolower($option->nombre) === mb_strtolower(trim($data[$field]))
-                && ($type !== 'variedad' || mb_strtolower($parents->get($option->parent_id)?->nombre ?? '') === mb_strtolower($data['producto'] ?? '')));
-            if (! $match) {
-                throw ValidationException::withMessages([$field => 'Selecciona una opcion activa del catalogo.']);
+            if (DB::transactionLevel() > 0) {
+                DB::table('maestro_valores')->where('tipo', $type)->where(fn ($q) => $q->whereNull('id_empresa')->orWhere('id_empresa', app(CompanyContext::class)->company()))
+                    ->when(isset($data[$field.'_id']), fn ($q) => $q->where('id', $data[$field.'_id']), fn ($q) => $q->whereRaw('LOWER(TRIM(nombre)) = ?', [mb_strtolower(trim($data[$field] ?? ''))]))->sharedLock()->get();
             }
-            if ($type === 'variedad') {
-                $parent = $this->options('producto')->firstWhere('id', $match->parent_id);
-                if (! $parent || mb_strtolower($parent->nombre) !== mb_strtolower($data['producto'] ?? '')) {
-                    throw ValidationException::withMessages([$field => 'La variedad no pertenece al producto.']);
-                }
+            $options = $this->options($type);
+            $stable = in_array($field, ['producto', 'variedad', 'metodo'], true);
+            $matches = isset($data[$field.'_id'])
+                ? $options->where('id', (int) $data[$field.'_id'])
+                : $options->filter(fn ($item) => mb_strtolower(trim($item->nombre)) === mb_strtolower(trim($data[$field] ?? '')));
+            if ($field === 'variedad') {
+                $matches = $matches->where('parent_id', $data['producto_id'] ?? null);
             }
+            if ($matches->count() !== 1) {
+                throw ValidationException::withMessages([$field => 'Selecciona una opción activa y no ambigua del catálogo.']);
+            }
+            $match = $matches->first();
             $data[$field] = $match->nombre;
+            if ($stable) {
+                $data[$field.'_id'] = (int) $match->id;
+            }
         }
 
         return $data;

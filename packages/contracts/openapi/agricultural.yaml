@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "AgroCloud Agricultural",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "Numeric external identity IDs; online Identity introspection; runtime integration not yet verified."
   },
   "servers": [
@@ -510,6 +510,16 @@
                   "fecha_llegada_prevista": {
                     "type": "string",
                     "format": "date-time"
+                  },
+                  "producto_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "nullable": true
+                  },
+                  "variedad_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "nullable": true
                   }
                 },
                 "required": [
@@ -659,6 +669,15 @@
                                   },
                                   "done": {
                                     "type": "boolean"
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "enum": [
+                                      "manual",
+                                      "completed",
+                                      "in_progress",
+                                      "pending"
+                                    ]
                                   }
                                 },
                                 "required": [
@@ -667,6 +686,58 @@
                                   "done"
                                 ]
                               }
+                            },
+                            "evidenceProgress": {
+                              "type": "object",
+                              "properties": {
+                                "sampled_fruits": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "captured_fruits": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "reviewed_fruits": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "relevant_photos": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "reviewed_photos": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "ai_pending": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "ai_completed": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "manual_reviewed": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "complete": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "sampled_fruits",
+                                "captured_fruits",
+                                "reviewed_fruits",
+                                "relevant_photos",
+                                "reviewed_photos",
+                                "ai_pending",
+                                "ai_completed",
+                                "manual_reviewed",
+                                "complete"
+                              ],
+                              "nullable": true
                             }
                           },
                           "required": [
@@ -678,6 +749,14 @@
                             "latestDecision",
                             "stages"
                           ]
+                        },
+                        "producto_id": {
+                          "type": "integer",
+                          "nullable": true
+                        },
+                        "variedad_id": {
+                          "type": "integer",
+                          "nullable": true
                         }
                       },
                       "required": [
@@ -1259,6 +1338,36 @@
                               "id_lote",
                               "lote"
                             ]
+                          },
+                          "latest_decision": {
+                            "type": "object",
+                            "properties": {
+                              "id_dictamen": {
+                                "type": "integer"
+                              },
+                              "id_supervisor": {
+                                "type": "integer"
+                              },
+                              "decision": {
+                                "type": "string"
+                              },
+                              "categoria": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            },
+                            "required": [
+                              "id_dictamen",
+                              "id_supervisor",
+                              "decision",
+                              "categoria",
+                              "created_at"
+                            ],
+                            "nullable": true
                           }
                         },
                         "required": [
@@ -2765,6 +2874,15 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "producto_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
           }
         ]
       },
@@ -2834,6 +2952,16 @@
                   },
                   "requiere_poblacion": {
                     "type": "boolean"
+                  },
+                  "producto_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "nullable": true
+                  },
+                  "metodo_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "nullable": true
                   }
                 },
                 "required": [
@@ -4100,6 +4228,1099 @@
             "description": "Invalid input"
           }
         }
+      }
+    },
+    "/reports/ai/overview": {
+      "get": {
+        "summary": "Consultar overview de IA por empresa",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "company"
+                      ]
+                    },
+                    "timezone": {
+                      "type": "string",
+                      "enum": [
+                        "UTC"
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "evidences": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "analyzed": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "processing": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "failed": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "detections": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "confirmed": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "discarded": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "pending": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "evidences",
+                        "analyzed",
+                        "processing",
+                        "failed",
+                        "detections",
+                        "confirmed",
+                        "discarded",
+                        "pending"
+                      ]
+                    },
+                    "note": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "scope",
+                    "timezone",
+                    "data",
+                    "note"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Private service key required"
+          },
+          "422": {
+            "description": "Invalid filters"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        },
+        "description": "Datos exclusivamente de la empresa autenticada. Requiere ia.reportes.ver.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "model_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "producto",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "variedad",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "producer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "operationId": "get_reports_ai_overview"
+      }
+    },
+    "/reports/ai/classes": {
+      "get": {
+        "summary": "Consultar classes de IA por empresa",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "company"
+                      ]
+                    },
+                    "timezone": {
+                      "type": "string",
+                      "enum": [
+                        "UTC"
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "class_name": {
+                            "type": "string"
+                          },
+                          "detections": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "mean_confidence": {
+                            "oneOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          "confirmed": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "discarded": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "pending": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "class_name",
+                          "detections",
+                          "mean_confidence",
+                          "confirmed",
+                          "discarded",
+                          "pending"
+                        ]
+                      }
+                    },
+                    "note": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "scope",
+                    "timezone",
+                    "data",
+                    "note"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Private service key required"
+          },
+          "422": {
+            "description": "Invalid filters"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        },
+        "description": "Datos exclusivamente de la empresa autenticada. Requiere ia.reportes.ver.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "model_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "producto",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "variedad",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "producer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "operationId": "get_reports_ai_classes"
+      }
+    },
+    "/reports/ai/daily": {
+      "get": {
+        "summary": "Consultar daily de IA por empresa",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "company"
+                      ]
+                    },
+                    "timezone": {
+                      "type": "string",
+                      "enum": [
+                        "UTC"
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "day": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "evidences": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "analyzed": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "failed": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "day",
+                          "evidences",
+                          "analyzed",
+                          "failed"
+                        ]
+                      }
+                    },
+                    "note": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "scope",
+                    "timezone",
+                    "data",
+                    "note"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Private service key required"
+          },
+          "422": {
+            "description": "Invalid filters"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        },
+        "description": "Datos exclusivamente de la empresa autenticada. Requiere ia.reportes.ver.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "model_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "producto",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "variedad",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "producer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "operationId": "get_reports_ai_daily"
+      }
+    },
+    "/reports/ai/models": {
+      "get": {
+        "summary": "Consultar models de IA por empresa",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "company"
+                      ]
+                    },
+                    "timezone": {
+                      "type": "string",
+                      "enum": [
+                        "UTC"
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "model_id": {
+                            "type": "string"
+                          },
+                          "evidences": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "model_id",
+                          "evidences"
+                        ]
+                      }
+                    },
+                    "note": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "scope",
+                    "timezone",
+                    "data",
+                    "note"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Private service key required"
+          },
+          "422": {
+            "description": "Invalid filters"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        },
+        "description": "Datos exclusivamente de la empresa autenticada. Requiere ia.reportes.ver.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "model_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "producto",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "variedad",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "producer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "operationId": "get_reports_ai_models"
+      }
+    },
+    "/reports/ai/validation": {
+      "get": {
+        "summary": "Consultar validation de IA por empresa",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "company"
+                      ]
+                    },
+                    "timezone": {
+                      "type": "string",
+                      "enum": [
+                        "UTC"
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "confirmed": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "discarded": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "pending": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "confirmed",
+                        "discarded",
+                        "pending"
+                      ]
+                    },
+                    "note": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "scope",
+                    "timezone",
+                    "data",
+                    "note"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Private service key required"
+          },
+          "422": {
+            "description": "Invalid filters"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        },
+        "description": "Datos exclusivamente de la empresa autenticada. Requiere ia.reportes.ver.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "model_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "producto",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "variedad",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "producer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "operationId": "get_reports_ai_validation"
+      }
+    },
+    "/reports/producers": {
+      "get": {
+        "summary": "Consultar productores autorizados para filtros de reportes",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id_productor": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "ruc": {
+                            "type": "string"
+                          },
+                          "nombre_razon_social": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id_productor",
+                          "ruc",
+                          "nombre_razon_social"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer"
+                        },
+                        "last_page": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "last_page"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Private service key required"
+          },
+          "422": {
+            "description": "Invalid filters"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        },
+        "description": "Datos exclusivamente de la empresa autenticada. Requiere reportes.operativos.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "operationId": "get_reports_producers"
+      }
+    },
+    "/setup": {
+      "get": {
+        "summary": "Consultar preparación agrícola inicial",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "checks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "done": {
+                            "type": "boolean"
+                          },
+                          "href": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "done",
+                          "href"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "checks"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Private service key required"
+          },
+          "422": {
+            "description": "Invalid filters"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        },
+        "description": "Requiere empresa.editar. Las verificaciones son de preparación agrícola, no validación de información legal o usuarios.",
+        "operationId": "get_setup"
+      }
+    },
+    "/reports/ai/producers": {
+      "get": {
+        "summary": "Consultar productores autorizados para filtros de reportes",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id_productor": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "nombre_razon_social": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id_productor",
+                          "nombre_razon_social"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer"
+                        },
+                        "last_page": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "last_page"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Private service key required"
+          },
+          "422": {
+            "description": "Invalid filters"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        },
+        "description": "Solo nombres e identificadores del catálogo empresarial para filtrar resultados IA. Requiere ia.reportes.ver.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "operationId": "get_reports_ai_producers"
       }
     }
   },

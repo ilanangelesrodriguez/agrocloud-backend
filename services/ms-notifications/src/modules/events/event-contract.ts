@@ -28,6 +28,9 @@ export interface Notice {
 }
 const agriculturalTypes = [
   'lot.created',
+  'sampling.created',
+  'lot.retained',
+  'lot.released',
   'lot.cancelled',
   'lot.received',
   'inspection.validated',
@@ -38,6 +41,9 @@ const agriculturalTypes = [
 ];
 const eventFields: Record<string, string[]> = {
   'lot.created': ['lotId'],
+  'sampling.created': ['lotId', 'samplingId'],
+  'lot.retained': ['lotId'],
+  'lot.released': ['lotId'],
   'lot.cancelled': ['lotId'],
   'lot.received': ['lotId', 'receptionId', 'recipientPermissions'],
   'inspection.validated': ['lotId', 'inspectionId', 'recipientPermissions'],
@@ -136,6 +142,7 @@ export function parseEvent(source: Source, body: unknown): DomainEvent {
   const data = record(payload.data, eventFields[type]);
   numericId(data.lotId);
   for (const key of [
+    'samplingId',
     'receptionId',
     'inspectionId',
     'decisionId',
@@ -228,6 +235,29 @@ export function noticeFor(source: Source, event: DomainEvent): Notice {
     message: 'Se actualizó el expediente del lote #' + lot + '.',
   };
   switch (event.type) {
+    case 'sampling.created':
+      return {
+        ...common,
+        kind: 'MUESTREO_REGISTRADO',
+        title: 'Muestreo pendiente de inspección',
+        destination: '/samplings/' + String(event.data.samplingId),
+        permissions: ['inspecciones.crear'],
+      };
+    case 'lot.retained':
+      return {
+        ...common,
+        kind: 'LOTE_RETENIDO',
+        title: 'Lote retenido: no disponible para producción',
+        priority: 'high',
+        permissions: ['produccion.ver'],
+      };
+    case 'lot.released':
+      return {
+        ...common,
+        kind: 'LOTE_LIBERADO',
+        title: 'Lote liberado nuevamente para producción',
+        permissions: ['produccion.ver'],
+      };
     case 'lot.created':
       return {
         ...common,

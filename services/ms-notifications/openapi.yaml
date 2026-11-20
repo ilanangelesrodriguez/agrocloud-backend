@@ -984,7 +984,8 @@
                         "LOTE_RECIBIDO",
                         "INSPECCION_ASIGNADA",
                         "INSPECCION_VALIDADA",
-                        "DICTAMEN_APROBADO"
+                        "DICTAMEN_APROBADO",
+                        "MUESTREO_REGISTRADO"
                       ]
                     }
                   },

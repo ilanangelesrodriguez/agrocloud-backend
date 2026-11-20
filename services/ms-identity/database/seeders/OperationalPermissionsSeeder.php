@@ -13,6 +13,15 @@ class OperationalPermissionsSeeder extends Seeder
         foreach (['produccion.ver' => 'Consultar lotes liberados', 'incidencias.ver' => 'Consultar y atender incidencias asignadas', 'incidencias.crear' => 'Registrar incidencias', 'incidencias.cerrar' => 'Cerrar y reabrir incidencias', 'recepciones.ver' => 'Consultar recepciones', 'recepciones.crear' => 'Confirmar recepción', 'trazabilidad.ver' => 'Consultar trazabilidad', 'reportes.operativos' => 'Consultar reportes operativos'] as $code => $name) {
             Permiso::firstOrCreate(['codigo' => $code], ['nombre' => $name, 'modulo' => 'OPERACIONES', 'estado' => true]);
         }
+        foreach (['ia.reportes.ver' => 'Consultar resultados IA de la propia empresa', 'ia.modelo.ver' => 'Consultar evaluación científica del modelo', 'ia.monitoreo.ver' => 'Consultar estadísticas técnicas globales de IA', 'ia.historial.ver' => 'Consultar historial técnico global de inferencias'] as $code => $name) {
+            $permission = Permiso::firstOrCreate(['codigo' => $code], ['nombre' => $name, 'modulo' => 'IA', 'estado' => true]);
+            $targets = match ($code) {
+                'ia.reportes.ver' => ['ADMIN', 'SUPERVISOR', 'INSPECTOR'], 'ia.modelo.ver' => ['SUPERADMIN', 'ADMIN', 'SUPERVISOR', 'INSPECTOR'], default => ['SUPERADMIN']
+            };
+            foreach ($targets as $roleCode) {
+                Rol::where('codigo', $roleCode)->first()?->permisos()->syncWithoutDetaching([$permission->getKey()]);
+            }
+        }
         foreach (['ADMIN', 'RECEPCION', 'INSPECTOR', 'SUPERVISOR', 'PRODUCCION'] as $code) {
             $role = Rol::where('codigo', $code)->first();
             if (! $role) {

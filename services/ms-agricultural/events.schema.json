@@ -26,7 +26,10 @@
         "quality.decision.issued",
         "incident.opened",
         "incident.updated",
-        "evidence.analysis_failed"
+        "evidence.analysis_failed",
+        "sampling.created",
+        "lot.retained",
+        "lot.released"
       ]
     },
     "version": {
