@@ -15,9 +15,11 @@ use Illuminate\Support\Facades\DB;
 
 class InspectionController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        return AgriculturalResource::collection(Inspeccion::with('muestreo.lote')->orderByDesc('id_inspeccion')->paginate(25));
+        $data = $request->validate(['estado' => ['nullable', 'string', 'max:40']]);
+
+        return AgriculturalResource::collection(Inspeccion::with('muestreo.lote')->when($data['estado'] ?? null, fn ($query, $status) => $query->where('estado', $status))->orderByDesc('id_inspeccion')->paginate(25));
     }
 
     public function show(int $inspection): AgriculturalResource

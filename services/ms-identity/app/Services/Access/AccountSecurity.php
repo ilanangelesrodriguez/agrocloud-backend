@@ -10,6 +10,9 @@ class AccountSecurity
 {
     public static function record(User $user, string $event, array $changes = [], ?User $actor = null): void
     {
+        if ($user->id_empresa && in_array($event, ['USER_UPDATED', 'PASSWORD_RESET', 'EMAIL_CHANGE_REQUESTED', 'EMAIL_CHANGE_CONFIRMED', 'LOGOUT_ALL'], true)) {
+            NotificationOutbox::enqueue($user->id_empresa, [(int) $user->getKey()], $event === 'USER_UPDATED' ? 'USER_ACCESS_CHANGED' : 'SECURITY_NOTICE');
+        }
         DB::table('account_security_events')->insert([
             'id_empresa' => $user->id_empresa, 'id_usuario' => $user->getKey(),
             'actor_id' => $actor?->getKey(), 'event' => $event,

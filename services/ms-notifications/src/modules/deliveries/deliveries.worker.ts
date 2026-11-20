@@ -3,6 +3,7 @@ import { Mailer } from '@nestjs/mail';
 import { randomUUID } from 'node:crypto';
 import { Database } from '../../infrastructure/database/database.service.js';
 import { IdentityClient } from '../../integrations/identity/identity.client.js';
+import { notificationDestination } from '../../common/notification-destination.js';
 import { Settings } from '../../common/settings.js';
 import {
   channels,
@@ -92,7 +93,10 @@ export class DeliveriesWorker {
         text:
           notice.message +
           '\n\n' +
-          new URL(notice.destination, this.settings.frontendUrl).href,
+          new URL(
+            notificationDestination(notice.destination),
+            this.settings.frontendUrl,
+          ).href,
         retry: false,
         signal: AbortSignal.timeout(30000),
         idempotencyKey: delivery.id,

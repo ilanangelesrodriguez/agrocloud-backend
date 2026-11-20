@@ -23,6 +23,39 @@ class CatalogController extends Controller
         return response()->json(['data' => $catalog->options($data['tipo'])]);
     }
 
+    public function admin(Request $request): JsonResponse
+    {
+        $request->user()->requireRole('ADMIN');
+        $data = $request->validate(['tipo' => ['required', Rule::in(['producto', 'variedad', 'unidad', 'metodo', 'defecto', 'categoria', 'motivo'])]]);
+        $company = app(CompanyContext::class)->company();
+        $items = DB::table('maestro_valores as value')
+            ->leftJoin('maestro_empresa_config as config', fn ($join) => $join->on('config.maestro_id', '=', 'value.id')->where('config.id_empresa', $company))
+            ->where('value.tipo', $data['tipo'])
+            ->where(fn ($query) => $query->whereNull('value.id_empresa')->orWhere('value.id_empresa', $company))
+            ->select('value.*')->selectRaw('value.estado AND COALESCE(config.estado, true) AS habilitado')->orderBy('value.nombre')->get();
+
+        return response()->json(['data' => $items]);
+    }
+
+    public function update(Request $request, int $catalog): JsonResponse
+    {
+        $request->user()->requireRole('ADMIN');
+        $data = $request->validate(['nombre' => ['required', 'string', 'max:150']]);
+        $company = app(CompanyContext::class)->company();
+        DB::transaction(function () use ($catalog, $company, $data): void {
+            $item = DB::table('maestro_valores')->where('id', $catalog)->where('id_empresa', $company)->lockForUpdate()->first();
+            abort_unless($item, 404);
+            abort_if($item->tipo === 'unidad', 422);
+            $name = trim($data['nombre']);
+            abort_if($name === '', 422);
+            $key = hash('sha256', $company.'|'.$item->tipo.'|'.($item->parent_id ?? '').'|'.mb_strtolower($name));
+            abort_if(DB::table('maestro_valores')->where('clave', $key)->where('id', '<>', $catalog)->exists(), 409, 'Catalog value already exists.');
+            DB::table('maestro_valores')->where('id', $catalog)->where('id_empresa', $company)->update(['nombre' => $name, 'clave' => $key, 'updated_at' => now()]);
+        });
+
+        return response()->json(['updated' => true]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $request->user()->requireRole('ADMIN');
@@ -53,9 +86,17 @@ class CatalogController extends Controller
         return response()->json(['updated' => true]);
     }
 
-    public function procedures(): AnonymousResourceCollection
+    public function procedures(Request $request): AnonymousResourceCollection
     {
-        return AgriculturalResource::collection(SamplingProcedure::orderByDesc('id')->paginate(25));
+        $data = $request->validate(['producto' => ['nullable', 'string', 'max:150'], 'activo' => ['nullable', Rule::in(['true', 'false', '1', '0'])]]);
+
+        return AgriculturalResource::collection(SamplingProcedure::when($data['producto'] ?? null, fn ($query, $product) => $query->where(fn ($query) => $query->whereNull('producto')->orWhere('producto', $product)))
+            ->when(isset($data['activo']), fn ($query) => $query->where('activo', filter_var($data['activo'], FILTER_VALIDATE_BOOL)))->orderByDesc('id')->paginate(25));
+    }
+
+    public function showProcedure(int $procedure): AgriculturalResource
+    {
+        return new AgriculturalResource(SamplingProcedure::findOrFail($procedure));
     }
 
     public function procedure(ProcedureRequest $request, CatalogService $catalog): AgriculturalResource

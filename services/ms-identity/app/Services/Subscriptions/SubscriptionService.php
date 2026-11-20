@@ -4,6 +4,7 @@ namespace App\Services\Subscriptions;
 
 use App\Models\Empresa;
 use App\Models\User;
+use App\Services\Access\NotificationOutbox;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
@@ -296,6 +297,8 @@ class SubscriptionService
                 'status' => 'PAID', 'provider_charge_id' => $event['provider_charge_id'], 'paid_at' => now(), 'updated_at' => now(),
             ]);
             DB::table('identity_processed_events')->insert(['event_id' => $event['event_id'], 'payload_hash' => $bodyHash, 'processed_at' => now()]);
+            $admins = User::where('id_empresa', $order->company_id)->where('estado', true)->whereHas('rol', fn ($query) => $query->where('codigo', 'ADMIN')->where('estado', true))->pluck('id_usuario')->map(fn ($id) => (int) $id)->all();
+            NotificationOutbox::enqueue((int) $order->company_id, $admins, 'SUBSCRIPTION_UPDATED');
 
             return true;
         }, 3);

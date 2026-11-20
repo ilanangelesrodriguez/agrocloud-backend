@@ -57,12 +57,16 @@ Route::middleware(['throttle:agricultural-public', 'agricultural.auth', 'throttl
     Route::post('/evidences/{evidence}/discard', [EvidenceController::class, 'discard'])->whereNumber('evidence')->middleware('agricultural.permission:inspecciones.validar');
     Route::post('/inspections/{inspection}/validate', [InspectionController::class, 'validateInspection'])->whereNumber('inspection')->middleware('agricultural.permission:inspecciones.validar');
     Route::post('/inspections/{inspection}/decisions', [QualityController::class, 'store'])->whereNumber('inspection')->middleware('agricultural.permission:calidad.clasificar');
+    Route::get('/incidents', [IncidentController::class, 'index'])->middleware('agricultural.permission:lotes.ver');
     Route::get('/lots/{lot}/incidents', [IncidentController::class, 'index'])->whereNumber('lot')->middleware('agricultural.permission:lotes.ver');
     Route::post('/lots/{lot}/incidents', [IncidentController::class, 'store'])->whereNumber('lot')->middleware('agricultural.permission:lotes.ver');
     Route::patch('/incidents/{incident}', [IncidentController::class, 'update'])->whereNumber('incident')->middleware('agricultural.permission:lotes.ver');
+    Route::get('/catalogs/admin', [CatalogController::class, 'admin'])->middleware('agricultural.permission:empresa.editar');
+    Route::put('/catalogs/{catalog}', [CatalogController::class, 'update'])->whereNumber('catalog')->middleware('agricultural.permission:empresa.editar');
     Route::get('/catalogs', [CatalogController::class, 'index']);
     Route::post('/catalogs', [CatalogController::class, 'store'])->middleware('agricultural.permission:empresa.editar');
     Route::patch('/catalogs/{catalog}', [CatalogController::class, 'toggle'])->whereNumber('catalog')->middleware('agricultural.permission:empresa.editar');
+    Route::get('/sampling-procedures/{procedure}', [CatalogController::class, 'showProcedure'])->whereNumber('procedure');
     Route::get('/sampling-procedures', [CatalogController::class, 'procedures']);
     Route::post('/sampling-procedures', [CatalogController::class, 'procedure'])->middleware('agricultural.permission:empresa.editar');
     Route::patch('/sampling-procedures/{procedure}', [CatalogController::class, 'toggleProcedure'])->whereNumber('procedure')->middleware('agricultural.permission:empresa.editar');

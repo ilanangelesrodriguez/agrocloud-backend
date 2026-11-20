@@ -17,11 +17,13 @@ use Illuminate\Validation\Rule;
 
 class IncidentController extends Controller
 {
-    public function index(int $lot): AnonymousResourceCollection
+    public function index(?int $lot = null): AnonymousResourceCollection
     {
-        Lote::findOrFail($lot);
+        if ($lot !== null) {
+            Lote::findOrFail($lot);
+        }
 
-        return AgriculturalResource::collection(Incidencia::where('id_lote', $lot)->orderByDesc('id')->paginate(25));
+        return AgriculturalResource::collection(Incidencia::when($lot !== null, fn ($query) => $query->where('id_lote', $lot))->orderByDesc('id')->paginate(25));
     }
 
     public function store(Request $request, int $lot, IdentityClient $identity): AgriculturalResource

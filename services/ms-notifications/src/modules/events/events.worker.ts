@@ -56,7 +56,7 @@ export class EventsWorker {
       }
       if (notice.explicitIds.length) {
         const explicitPermission =
-          event.source === 'identity' ? 'empresa.ver' : 'lotes.ver';
+          event.source === 'identity' ? '' : 'lotes.ver';
         const allowed = new Map(
           (
             await this.identity.recipients(parsed.companyId, explicitPermission)
@@ -68,8 +68,7 @@ export class EventsWorker {
           if (recipient)
             recipients.set(userId, {
               ...recipient,
-              permission:
-                event.source === 'identity' ? 'empresa.ver' : 'lotes.ver',
+              permission: event.source === 'identity' ? '' : 'lotes.ver',
             });
         }
       }

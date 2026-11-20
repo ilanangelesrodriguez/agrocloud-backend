@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
+import { PortalDestinations1795190400000 } from '../migrations/002_portal_destinations.mjs';
 import { NotificationsInitial1794330000000 } from '../migrations/001_notifications.mjs';
 
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required.');
@@ -8,7 +9,10 @@ const source = new DataSource({
   url: process.env.DATABASE_URL,
   entities: [],
   synchronize: false,
-  migrations: [NotificationsInitial1794330000000],
+  migrations: [
+    NotificationsInitial1794330000000,
+    PortalDestinations1795190400000,
+  ],
   migrationsTableName: 'notifications_schema_migrations',
   logging: false,
 });

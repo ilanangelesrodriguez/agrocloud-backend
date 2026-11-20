@@ -36,8 +36,18 @@ class OutboxDispatcher
             return false;
         }
         try {
-            $response = Http::acceptJson()->withoutRedirecting()->connectTimeout(2)->timeout(10)
-                ->withHeaders(['X-Event-Id' => $event->event_id, 'X-AgroCloud-Signature' => 'sha256='.hash_hmac('sha256', $event->payload, $secret)])
+            $request = Http::acceptJson()->withoutRedirecting()->connectTimeout(2)->timeout(10);
+            $audience = (string) config('agricultural.notifications_audience');
+            if ($audience !== '' || getenv('K_SERVICE')) {
+                $audience = $audience !== '' ? $audience : parse_url($url, PHP_URL_SCHEME).'://'.parse_url($url, PHP_URL_HOST);
+                $token = Http::withHeaders(['Metadata-Flavor' => 'Google'])->withoutRedirecting()->connectTimeout(2)->timeout(5)
+                    ->get('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity', ['audience' => $audience]);
+                if (! $token->successful() || ! preg_match('/^[\w-]+\.[\w-]+\.[\w-]+$/', trim($token->body()))) {
+                    throw new \RuntimeException('Cloud Run identity token unavailable.');
+                }
+                $request = $request->withHeaders(['X-Serverless-Authorization' => 'Bearer '.trim($token->body())]);
+            }
+            $response = $request->withHeaders(['X-Event-Id' => $event->event_id, 'X-AgroCloud-Signature' => 'sha256='.hash_hmac('sha256', $event->payload, $secret)])
                 ->withBody($event->payload, 'application/json')->post($url);
             if (! $response->successful()) {
                 throw new \RuntimeException('Receiver rejected event.');

@@ -6,6 +6,7 @@ return [
     'ai_url' => env('AI_SERVICE_URL', 'http://ms-ai:8000'),
     'ai_key' => env('AI_SERVICE_API_KEY', ''),
     'notifications_url' => env('NOTIFICATIONS_EVENT_URL', ''),
+    'notifications_audience' => env('NOTIFICATIONS_CLOUD_RUN_AUDIENCE', ''),
     'event_secret' => env('AGRICULTURAL_EVENT_SECRET', ''),
     'manual_sampling_enabled' => filter_var(env('MANUAL_SAMPLING_ENABLED', false), FILTER_VALIDATE_BOOL),
     'sampling_max_fruits' => max(1, min(100000, (int) env('SAMPLING_MAX_FRUITS', 100000))),

@@ -5,6 +5,7 @@ namespace App\Modules\Lots;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LotRequest;
 use App\Http\Resources\AgriculturalResource;
+use App\Models\Incidencia;
 use App\Models\Lote;
 use App\Models\Productor;
 use App\Modules\Catalogs\CatalogService;
@@ -21,9 +22,16 @@ use Illuminate\Support\Str;
 
 class LotController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        return AgriculturalResource::collection(Lote::with('productor')->orderByDesc('id_lote')->paginate(25));
+        $data = $request->validate(['estado' => ['nullable', 'string', 'max:40']]);
+        $query = Lote::with('productor')->when($data['estado'] ?? null, fn ($query, $status) => $query->where('estado', $status));
+        if (($data['estado'] ?? null) === 'CLASIFICADO') {
+            $blocked = Incidencia::whereIn('gravedad', ['ALTA', 'CRITICA'])->where('estado', '<>', 'CERRADA')->select('id_lote');
+            $query->whereNotIn('id_lote', $blocked);
+        }
+
+        return AgriculturalResource::collection($query->orderByDesc('id_lote')->paginate(25));
     }
 
     public function show(int $lot): AgriculturalResource

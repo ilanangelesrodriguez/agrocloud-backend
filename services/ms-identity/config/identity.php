@@ -20,6 +20,11 @@ return [
             'analisis_ia' => env('IDENTITY_FREE_PLAN_AI'),
         ],
     ],
+    'notifications' => [
+        'url' => env('NOTIFICATIONS_EVENT_URL', ''),
+        'secret' => env('IDENTITY_EVENT_SECRET', ''),
+        'audience' => env('NOTIFICATIONS_CLOUD_RUN_AUDIENCE', ''),
+    ],
     'billing' => [
         'url' => env('BILLING_SERVICE_URL', 'http://ms-billing:3000'),
         'api_key' => env('BILLING_SERVICE_API_KEY', ''),

@@ -182,7 +182,7 @@ export function noticeFor(source: Source, event: DomainEvent): Notice {
     kind: '',
     title: '',
     message: '',
-    destination: '/notificaciones',
+    destination: '/notifications',
     priority: 'normal',
     category: 'operational',
     permissions: [],
@@ -192,12 +192,21 @@ export function noticeFor(source: Source, event: DomainEvent): Notice {
     return {
       ...base,
       kind: String(event.data.code),
-      title: 'Seguridad de tu cuenta AgroCloud',
+      title:
+        event.data.code === 'SUBSCRIPTION_UPDATED'
+          ? 'Suscripción actualizada'
+          : 'Seguridad de tu cuenta AgroCloud',
       message:
-        'Se registró un cambio de seguridad o acceso en tu cuenta. Revisa tu cuenta o contacta al administrador.',
+        event.data.code === 'SUBSCRIPTION_UPDATED'
+          ? 'Se actualizaron el plan o los cupos de tu empresa.'
+          : 'Se registró un cambio de seguridad o acceso en tu cuenta. Revisa tu cuenta o contacta al administrador.',
       priority: 'critical',
       category: 'security',
-      permissions: ['empresa.ver'],
+      destination:
+        event.data.code === 'SUBSCRIPTION_UPDATED'
+          ? '/settings/subscription'
+          : '/settings/profile',
+      permissions: [],
       explicitIds: (event.data.recipientIds as number[]).map(id),
     };
   if (source === 'billing')
@@ -207,7 +216,7 @@ export function noticeFor(source: Source, event: DomainEvent): Notice {
       title: 'Pago confirmado',
       message:
         'Se confirmó el pago de la orden ' + event.data.order_reference + '.',
-      destination: '/suscripcion',
+      destination: '/settings/subscription',
       category: 'billing',
       priority: 'high',
       permissions: ['suscripciones.ver'],
@@ -215,7 +224,7 @@ export function noticeFor(source: Source, event: DomainEvent): Notice {
   const lot = String(event.data.lotId);
   const common = {
     ...base,
-    destination: '/lotes/' + lot,
+    destination: '/lots/' + lot,
     message: 'Se actualizó el expediente del lote #' + lot + '.',
   };
   switch (event.type) {
@@ -223,6 +232,7 @@ export function noticeFor(source: Source, event: DomainEvent): Notice {
       return {
         ...common,
         kind: 'LOTE_REGISTRADO',
+        destination: '/lots/' + lot + '/reception',
         title: 'Nuevo lote pendiente de recepción',
         permissions: ['recepciones.crear'],
       };
@@ -238,6 +248,7 @@ export function noticeFor(source: Source, event: DomainEvent): Notice {
       return {
         ...common,
         kind: 'LOTE_RECIBIDO',
+        destination: '/lots/' + lot + '/sampling',
         title: 'Lote disponible para muestreo',
         permissions: ['muestreos.crear'],
       };
@@ -245,6 +256,7 @@ export function noticeFor(source: Source, event: DomainEvent): Notice {
       return {
         ...common,
         kind: 'INSPECCION_VALIDADA',
+        destination: '/inspections/' + String(event.data.inspectionId),
         title: 'Inspección pendiente de dictamen',
         priority: 'high',
         permissions: ['calidad.clasificar'],

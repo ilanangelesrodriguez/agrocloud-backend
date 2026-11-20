@@ -17,6 +17,15 @@ export const envSchema = Joi.object({
     .required(),
   CULQI_API_URL: Joi.string().valid('https://api.culqi.com/v2').default('https://api.culqi.com/v2'),
   CULQI_WEBHOOK_TOKEN: Joi.string().min(32).required(),
+  NOTIFICATIONS_EVENT_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .allow('')
+    .default(''),
+  NOTIFICATIONS_CLOUD_RUN_AUDIENCE: Joi.string()
+    .uri({ scheme: ['https'] })
+    .allow('')
+    .default(''),
+  BILLING_EVENT_SECRET: Joi.string().allow('').default(''),
   AGROCLOUD_EVENT_URL: Joi.string().allow('').optional(),
   IDENTITY_CLOUD_RUN_AUDIENCE: Joi.string().allow('').default(''),
   AGROCLOUD_EVENT_SECRET: Joi.string().min(32).required(),
@@ -35,6 +44,14 @@ export const envSchema = Joi.object({
       typeof env.AGROCLOUD_EVENT_URL === 'string' &&
       env.AGROCLOUD_EVENT_URL &&
       !env.AGROCLOUD_EVENT_URL.startsWith('https://')
+    )
+      return helpers.error('any.invalid');
+    if (
+      env.NOTIFICATIONS_EVENT_URL &&
+      (typeof env.BILLING_EVENT_SECRET !== 'string' ||
+        env.BILLING_EVENT_SECRET.length < 32 ||
+        (env.NODE_ENV === 'production' &&
+          !String(env.NOTIFICATIONS_EVENT_URL).startsWith('https://')))
     )
       return helpers.error('any.invalid');
     return env;

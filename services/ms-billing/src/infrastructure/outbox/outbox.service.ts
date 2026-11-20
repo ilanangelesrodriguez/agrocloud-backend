@@ -18,8 +18,12 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
-    if (process.env.VERCEL === '1' || !this.config.get<boolean>('OUTBOX_TIMER_ENABLED', true)) return;
-    if (!this.config.get<string>('AGROCLOUD_EVENT_URL')) {
+    if (process.env.VERCEL === '1' || !this.config.get<boolean>('OUTBOX_TIMER_ENABLED', true))
+      return;
+    if (
+      !this.config.get<string>('AGROCLOUD_EVENT_URL') &&
+      !this.config.get<string>('NOTIFICATIONS_EVENT_URL')
+    ) {
       this.logger.warn('AGROCLOUD_EVENT_URL vacío: los eventos permanecerán pendientes');
       return;
     }
@@ -45,37 +49,45 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     culqiChargeId?: string;
   }): Promise<void> {
     const eventKey = `payment.succeeded:${order.externalReference}`;
-    try {
-      await this.events.updateOne(
-        { eventKey },
-        {
-          $setOnInsert: {
-            eventKey,
-            eventType: 'payment.succeeded',
-            status: 'PENDING',
-            attempts: 0,
-            nextAttemptAt: new Date(),
-            payload: {
-              event_id: eventKey,
-              type: 'payment.succeeded',
-              order_reference: order.externalReference,
-              company_id: order.companyId,
-              amount_cents: order.amountCents,
-              currency: order.currency,
-              kind: order.kind,
-              provider_charge_id: order.culqiChargeId,
+    for (const target of ['identity', 'notifications'] as const) {
+      const deliveryKey = target === 'identity' ? eventKey : 'notifications:' + eventKey;
+      try {
+        await this.events.updateOne(
+          { eventKey: deliveryKey },
+          {
+            $setOnInsert: {
+              eventKey: deliveryKey,
+              target,
+              eventType: 'payment.succeeded',
+              status: 'PENDING',
+              attempts: 0,
+              nextAttemptAt: new Date(),
+              payload: {
+                event_id: eventKey,
+                type: 'payment.succeeded',
+                order_reference: order.externalReference,
+                company_id: order.companyId,
+                amount_cents: order.amountCents,
+                currency: order.currency,
+                kind: order.kind,
+                provider_charge_id: order.culqiChargeId,
+              },
             },
           },
-        },
-        { upsert: true },
-      );
-    } catch (error: unknown) {
-      if ((error as { code?: number }).code !== 11000) throw error;
+          { upsert: true },
+        );
+      } catch (error: unknown) {
+        if ((error as { code?: number }).code !== 11000) throw error;
+      }
     }
   }
 
   async dispatchDue(limit = 20): Promise<{ attempted: number }> {
-    if (!this.config.get<string>('AGROCLOUD_EVENT_URL')) return { attempted: 0 };
+    if (
+      !this.config.get<string>('AGROCLOUD_EVENT_URL') &&
+      !this.config.get<string>('NOTIFICATIONS_EVENT_URL')
+    )
+      return { attempted: 0 };
     const due = await this.events
       .find({
         status: 'PENDING',
@@ -115,8 +127,6 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async dispatchOne(eventKey: string): Promise<void> {
-    const url = this.config.get<string>('AGROCLOUD_EVENT_URL');
-    if (!url) return;
     const lockToken = randomUUID();
     const event = await this.events.findOneAndUpdate(
       {
@@ -130,19 +140,28 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     );
     if (!event) return;
     const body = JSON.stringify(event.payload);
-    const signature = createHmac('sha256', this.config.getOrThrow<string>('AGROCLOUD_EVENT_SECRET'))
-      .update(body)
-      .digest('hex');
     try {
+      const notifications = event.target === 'notifications';
+      const url = this.config.get<string>(
+        notifications ? 'NOTIFICATIONS_EVENT_URL' : 'AGROCLOUD_EVENT_URL',
+      );
+      if (!url) throw new Error('Event receiver is not configured');
+      const secret = this.config.getOrThrow<string>(
+        notifications ? 'BILLING_EVENT_SECRET' : 'AGROCLOUD_EVENT_SECRET',
+      );
+      if (secret.length < 32) throw new Error('Invalid event signing secret');
+      const signature = createHmac('sha256', secret).update(body).digest('hex');
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'X-AgroCloud-Signature': 'sha256=' + signature,
-        'X-Event-Id': eventKey,
+        'X-Event-Id': String(event.payload.event_id),
       };
-      const audience = this.config.get<string>('IDENTITY_CLOUD_RUN_AUDIENCE');
+      const audience = this.config.get<string>(
+        notifications ? 'NOTIFICATIONS_CLOUD_RUN_AUDIENCE' : 'IDENTITY_CLOUD_RUN_AUDIENCE',
+      );
       if (audience) {
         if (new URL(url).protocol !== 'https:') throw new Error('Identity IAM requires HTTPS');
-        headers['X-Serverless-Authorization'] = 'Bearer ' + await this.identityToken(audience);
+        headers['X-Serverless-Authorization'] = 'Bearer ' + (await this.identityToken(audience));
       }
       const response = await fetch(url, {
         method: 'POST',

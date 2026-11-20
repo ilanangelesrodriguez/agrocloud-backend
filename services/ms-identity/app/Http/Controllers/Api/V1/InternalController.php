@@ -53,9 +53,9 @@ class InternalController extends Controller
     public function recipients(Request $request, int $company): JsonResponse
     {
         Empresa::where('estado', true)->findOrFail($company);
-        $data = $request->validate(['permission' => ['required', 'string', 'max:120', 'exists:permiso,codigo']]);
+        $data = $request->validate(['permission' => ['nullable', 'string', 'max:120', 'exists:permiso,codigo']]);
         $users = User::where('id_empresa', $company)->where('estado', true)->whereNull('invitation_hash')->whereNotNull('email_verified_at')
-            ->whereHas('rol', fn ($query) => $query->where('estado', true)->whereHas('permisos', fn ($query) => $query->where('permiso.codigo', $data['permission'])->where('permiso.estado', true)))
+            ->whereHas('rol', fn ($query) => $query->where('estado', true)->when($data['permission'] ?? null, fn ($query, $permission) => $query->whereHas('permisos', fn ($query) => $query->where('permiso.codigo', $permission)->where('permiso.estado', true))))
             ->orderBy('id_usuario')->paginate(100, ['id_usuario', 'id_empresa', 'nombre', 'apellido', 'correo']);
 
         return response()->json($users);

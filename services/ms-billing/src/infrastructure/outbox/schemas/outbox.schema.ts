@@ -6,6 +6,8 @@ export class OutboundEvent {
 
   @Prop({ required: true }) eventType!: string;
 
+  @Prop({ enum: ['identity', 'notifications'], default: 'identity' }) target!: string;
+
   @Prop({ required: true, type: Object }) payload!: Record<string, unknown>;
 
   @Prop({ required: true, default: 'PENDING', enum: ['PENDING', 'DELIVERED'] })

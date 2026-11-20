@@ -17,6 +17,8 @@ class CatalogSeeder extends Seeder
             return (int) DB::table('maestro_valores')->where('clave', $key)->value('id');
         };
         foreach (['metodo' => ['Aleatorio simple', 'Sistemático', 'Estratificado', 'ALEATORIO', 'SISTEMATICO', 'DIRIGIDO', 'OTRO'],
+            'categoria' => ['Extra', 'Categoría I', 'Categoría II'],
+            'motivo' => ['Defectos de calidad', 'Documentación incompleta', 'Madurez fuera de rango', 'Daños o contaminación'],
             'defecto' => ['Daño mecánico', 'Daño por plagas', 'Enfermedad visible', 'Madurez fuera de rango']] as $type => $values) {
             foreach ($values as $value) {
                 $insert($type, $value);
