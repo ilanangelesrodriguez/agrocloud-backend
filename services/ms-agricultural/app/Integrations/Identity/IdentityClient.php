@@ -79,14 +79,14 @@ class IdentityClient
     {
         $page = 1;
         do {
-            $data = $this->call('GET', '/companies/'.$company.'/recipients', ['permission' => 'lotes.ver', 'page' => $page]);
+            $data = $this->call('GET', '/companies/'.$company.'/recipients', ['permission' => 'incidencias.ver', 'page' => $page]);
             foreach ($data['data'] ?? [] as $recipient) {
                 if ((int) $recipient['id_usuario'] === $user) {
                     return;
                 }
             }
             $page++;
-        } while ($page <= min(100, (int) ($data['last_page'] ?? 1)));
+        } while ($page <= min(1000, (int) ($data['last_page'] ?? 1)));
         abort(422, 'Responsible user is not active or authorized in this company.');
     }
 }

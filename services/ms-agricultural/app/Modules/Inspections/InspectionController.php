@@ -12,14 +12,15 @@ use App\Shared\Events\Traceability;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class InspectionController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
-        $data = $request->validate(['estado' => ['nullable', 'string', 'max:40']]);
+        $data = $request->validate(['estado' => ['nullable', 'string', 'max:40'], 'decision_status' => ['nullable', Rule::in(['PENDING', 'OBSERVED', 'COMPLETED'])]]);
 
-        return AgriculturalResource::collection(Inspeccion::with('muestreo.lote')->when($data['estado'] ?? null, fn ($query, $status) => $query->where('estado', $status))->orderByDesc('id_inspeccion')->paginate(25));
+        return AgriculturalResource::collection(Inspeccion::with(['muestreo.lote', 'latestDecision'])->when($data['decision_status'] ?? null, fn ($query, $status) => $query->decisionStatus($status))->when($data['estado'] ?? null, fn ($query, $status) => $query->where('estado', $status))->orderByDesc('id_inspeccion')->paginate(25));
     }
 
     public function show(int $inspection): AgriculturalResource

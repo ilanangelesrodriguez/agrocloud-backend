@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "AgroCloud Agricultural",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Numeric external identity IDs; online Identity introspection; runtime integration not yet verified."
   },
   "servers": [
@@ -322,7 +322,94 @@
         ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id_lote": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "codigo_lote": {
+                            "type": "string"
+                          },
+                          "producto": {
+                            "type": "string"
+                          },
+                          "variedad": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "id_productor": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "estado": {
+                            "type": "string"
+                          },
+                          "peso_kg": {
+                            "oneOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              }
+                            ]
+                          },
+                          "unidad_medida": {
+                            "type": "string"
+                          },
+                          "fecha_llegada_prevista": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id_lote",
+                          "codigo_lote",
+                          "producto",
+                          "variedad",
+                          "id_productor",
+                          "estado",
+                          "peso_kg",
+                          "unidad_medida",
+                          "fecha_llegada_prevista"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "last_page"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
           },
           "401": {
             "description": "Invalid identity"
@@ -342,6 +429,26 @@
         },
         "tags": [
           "Lotes"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "estado",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 40
+            }
+          }
         ]
       },
       "post": {
@@ -444,7 +551,155 @@
         ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id_lote": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "codigo_lote": {
+                          "type": "string"
+                        },
+                        "producto": {
+                          "type": "string"
+                        },
+                        "variedad": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "id_productor": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "estado": {
+                          "type": "string"
+                        },
+                        "peso_kg": {
+                          "oneOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "unidad_medida": {
+                          "type": "string"
+                        },
+                        "fecha_llegada_prevista": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "workflow": {
+                          "type": "object",
+                          "properties": {
+                            "currentStage": {
+                              "type": "string"
+                            },
+                            "nextAction": {
+                              "type": "object",
+                              "properties": {
+                                "label": {
+                                  "type": "string"
+                                },
+                                "href": {
+                                  "type": "string"
+                                },
+                                "permission": {
+                                  "type": "string"
+                                },
+                                "canExecute": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "label",
+                                "href",
+                                "permission",
+                                "canExecute"
+                              ],
+                              "nullable": true
+                            },
+                            "blockingReasons": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "samplingId": {
+                              "type": "integer",
+                              "nullable": true
+                            },
+                            "inspectionId": {
+                              "type": "integer",
+                              "nullable": true
+                            },
+                            "latestDecision": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "stages": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "done": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "key",
+                                  "label",
+                                  "done"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "currentStage",
+                            "nextAction",
+                            "blockingReasons",
+                            "samplingId",
+                            "inspectionId",
+                            "latestDecision",
+                            "stages"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id_lote",
+                        "codigo_lote",
+                        "producto",
+                        "variedad",
+                        "id_productor",
+                        "estado",
+                        "peso_kg",
+                        "unidad_medida",
+                        "fecha_llegada_prevista",
+                        "workflow"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
           },
           "401": {
             "description": "Invalid identity"
@@ -916,7 +1171,129 @@
         ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id_inspeccion": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "id_muestreo": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "estado": {
+                            "type": "string"
+                          },
+                          "muestreo": {
+                            "type": "object",
+                            "properties": {
+                              "id_lote": {
+                                "type": "integer",
+                                "minimum": 1
+                              },
+                              "lote": {
+                                "type": "object",
+                                "properties": {
+                                  "id_lote": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                  },
+                                  "codigo_lote": {
+                                    "type": "string"
+                                  },
+                                  "producto": {
+                                    "type": "string"
+                                  },
+                                  "variedad": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "id_productor": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                  },
+                                  "estado": {
+                                    "type": "string"
+                                  },
+                                  "peso_kg": {
+                                    "oneOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "number"
+                                      }
+                                    ]
+                                  },
+                                  "unidad_medida": {
+                                    "type": "string"
+                                  },
+                                  "fecha_llegada_prevista": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                },
+                                "required": [
+                                  "id_lote",
+                                  "codigo_lote",
+                                  "producto",
+                                  "variedad",
+                                  "id_productor",
+                                  "estado",
+                                  "peso_kg",
+                                  "unidad_medida",
+                                  "fecha_llegada_prevista"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id_lote",
+                              "lote"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id_inspeccion",
+                          "id_muestreo",
+                          "estado",
+                          "muestreo"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "last_page"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
           },
           "401": {
             "description": "Invalid identity"
@@ -936,7 +1313,41 @@
         },
         "tags": [
           "Inspecciones"
-        ]
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "estado",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "decision_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "OBSERVED",
+                "COMPLETED"
+              ]
+            }
+          }
+        ],
+        "description": "PENDING: última inspección validada sin dictamen. OBSERVED: última inspección con observación documental o administrativa corregible. COMPLETED: último dictamen de esa inspección aprobado o rechazado. Las reinspecciones sustituidas no entran en pendientes ni observadas."
       }
     },
     "/inspections/{inspection}": {
@@ -1784,7 +2195,8 @@
         ],
         "tags": [
           "Incidencias"
-        ]
+        ],
+        "description": "Requiere incidencias.ver. El seguimiento exige responsable asignado o supervisor autorizado; cerrar/reabrir exige SUPERVISOR con incidencias.cerrar."
       },
       "post": {
         "operationId": "post_lots_lot_incidents",
@@ -1867,7 +2279,8 @@
         },
         "tags": [
           "Incidencias"
-        ]
+        ],
+        "description": "Requiere incidencias.crear. El seguimiento exige responsable asignado o supervisor autorizado; cerrar/reabrir exige SUPERVISOR con incidencias.cerrar."
       }
     },
     "/incidents/{incident}": {
@@ -1947,7 +2360,8 @@
         },
         "tags": [
           "Incidencias"
-        ]
+        ],
+        "description": "Requiere incidencias.ver. El seguimiento exige responsable asignado o supervisor autorizado; cerrar/reabrir exige SUPERVISOR con incidencias.cerrar."
       }
     },
     "/catalogs": {
@@ -2125,6 +2539,84 @@
         "tags": [
           "Catálogos"
         ]
+      },
+      "put": {
+        "operationId": "put_catalogs_catalog",
+        "summary": "Renombrar un maestro empresarial sin referencias en uso",
+        "tags": [
+          "Catálogos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "updated": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "updated"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission or role denied"
+          },
+          "404": {
+            "description": "Record not found"
+          },
+          "409": {
+            "description": "State conflict or master value in use"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "catalog",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 150
+                  }
+                },
+                "required": [
+                  "nombre"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/sampling-procedures": {
@@ -2138,7 +2630,95 @@
         ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "nombre": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "string"
+                          },
+                          "metodo": {
+                            "type": "string"
+                          },
+                          "producto": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "activo": {
+                            "type": "boolean"
+                          },
+                          "requiere_poblacion": {
+                            "type": "boolean"
+                          },
+                          "max_frutos": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "tamano_recomendado": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "criterio_muestra": {
+                            "type": "string"
+                          },
+                          "seleccion_frutos": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "nombre",
+                          "version",
+                          "metodo",
+                          "producto",
+                          "activo",
+                          "requiere_poblacion",
+                          "max_frutos",
+                          "tamano_recomendado",
+                          "criterio_muestra",
+                          "seleccion_frutos"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "last_page"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
           },
           "401": {
             "description": "Invalid identity"
@@ -2158,6 +2738,34 @@
         },
         "tags": [
           "Catálogos"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "producto",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "activo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
         ]
       },
       "post": {
@@ -2306,6 +2914,116 @@
         "tags": [
           "Catálogos"
         ]
+      },
+      "get": {
+        "operationId": "get_sampling_procedures_procedure",
+        "summary": "Consultar procedimiento autorizado",
+        "tags": [
+          "Catálogos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "nombre": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "string"
+                        },
+                        "metodo": {
+                          "type": "string"
+                        },
+                        "producto": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "activo": {
+                          "type": "boolean"
+                        },
+                        "requiere_poblacion": {
+                          "type": "boolean"
+                        },
+                        "max_frutos": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "tamano_recomendado": {
+                          "type": "integer",
+                          "nullable": true
+                        },
+                        "criterio_muestra": {
+                          "type": "string"
+                        },
+                        "seleccion_frutos": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "nombre",
+                        "version",
+                        "metodo",
+                        "producto",
+                        "activo",
+                        "requiere_poblacion",
+                        "max_frutos",
+                        "tamano_recomendado",
+                        "criterio_muestra",
+                        "seleccion_frutos"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission or role denied"
+          },
+          "404": {
+            "description": "Record not found"
+          },
+          "409": {
+            "description": "State conflict or master value in use"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "procedure",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
       }
     },
     "/reports/summary": {
@@ -2319,7 +3037,215 @@
         ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lots_by_status": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "estado": {
+                            "type": "string"
+                          },
+                          "total": {
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "estado",
+                          "total"
+                        ]
+                      }
+                    },
+                    "inspections_by_status": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "estado": {
+                            "type": "string"
+                          },
+                          "total": {
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "estado",
+                          "total"
+                        ]
+                      }
+                    },
+                    "open_critical_incidents": {
+                      "type": "integer"
+                    },
+                    "quality": {
+                      "type": "object",
+                      "properties": {
+                        "decided_lots": {
+                          "type": "integer"
+                        },
+                        "approval_rate": {
+                          "type": "number"
+                        },
+                        "rejection_rate": {
+                          "type": "number"
+                        },
+                        "observed_rate": {
+                          "type": "number"
+                        },
+                        "reception_to_decision_hours": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "inspection_hours": {
+                          "type": "number",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "decided_lots",
+                        "approval_rate",
+                        "rejection_rate",
+                        "observed_rate",
+                        "reception_to_decision_hours",
+                        "inspection_hours"
+                      ]
+                    },
+                    "frequent_defects": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "clase": {
+                            "type": "string"
+                          },
+                          "total": {
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "clase",
+                          "total"
+                        ]
+                      }
+                    },
+                    "incidents_by_product": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "producto": {
+                            "type": "string"
+                          },
+                          "total": {
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "producto",
+                          "total"
+                        ]
+                      }
+                    },
+                    "quality_by_producer": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id_productor": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "productor": {
+                            "type": "string"
+                          },
+                          "decision": {
+                            "type": "string"
+                          },
+                          "total": {
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id_productor",
+                          "productor",
+                          "decision",
+                          "total"
+                        ]
+                      }
+                    },
+                    "ai_review": {
+                      "type": "object",
+                      "properties": {
+                        "confirmed": {
+                          "type": "integer"
+                        },
+                        "discarded": {
+                          "type": "integer"
+                        },
+                        "requested_evidences": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "confirmed",
+                        "discarded",
+                        "requested_evidences"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "lots_by_status",
+                    "inspections_by_status",
+                    "open_critical_incidents",
+                    "quality",
+                    "frequent_defects",
+                    "incidents_by_product",
+                    "quality_by_producer",
+                    "ai_review"
+                  ]
+                }
+              }
+            }
           },
           "401": {
             "description": "Invalid identity"
@@ -2339,7 +3265,841 @@
         },
         "tags": [
           "Reportes"
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "producto",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "variedad",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "producer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "description": "Cohorte de lotes por fecha de registro (UTC), producto, variedad y productor. Las tasas usan el último dictamen por lote. Duraciones en horas; hallazgos frecuentes son manuales. requested_evidences mide evidencias con solicitud de IA, no cuotas facturadas."
+      }
+    },
+    "/incidents": {
+      "get": {
+        "operationId": "get_incidents",
+        "summary": "Consultar incidencias de la empresa",
+        "tags": [
+          "Incidencias"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "id_lote": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "titulo": {
+                            "type": "string"
+                          },
+                          "descripcion": {
+                            "type": "string"
+                          },
+                          "gravedad": {
+                            "type": "string",
+                            "enum": [
+                              "BAJA",
+                              "MEDIA",
+                              "ALTA",
+                              "CRITICA"
+                            ]
+                          },
+                          "estado": {
+                            "type": "string",
+                            "enum": [
+                              "ABIERTA",
+                              "EN_ATENCION",
+                              "RESUELTA",
+                              "CERRADA"
+                            ]
+                          },
+                          "responsable": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "id_lote",
+                          "titulo",
+                          "descripcion",
+                          "gravedad",
+                          "estado",
+                          "responsable"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "last_page"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission or role denied"
+          },
+          "404": {
+            "description": "Record not found"
+          },
+          "409": {
+            "description": "State conflict or master value in use"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "description": "Requiere incidencias.ver. El seguimiento exige responsable asignado o supervisor autorizado; cerrar/reabrir exige SUPERVISOR con incidencias.cerrar."
+      }
+    },
+    "/catalogs/admin": {
+      "get": {
+        "operationId": "get_catalogs_admin",
+        "summary": "Consultar maestros activos e inactivos de la empresa",
+        "tags": [
+          "Catálogos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "nombre": {
+                            "type": "string"
+                          },
+                          "tipo": {
+                            "type": "string"
+                          },
+                          "id_empresa": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "parent_id": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "habilitado": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "nombre",
+                          "tipo",
+                          "id_empresa",
+                          "parent_id",
+                          "habilitado"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission or role denied"
+          },
+          "404": {
+            "description": "Record not found"
+          },
+          "409": {
+            "description": "State conflict or master value in use"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "tipo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "producto",
+                "variedad",
+                "unidad",
+                "metodo",
+                "defecto",
+                "categoria",
+                "motivo"
+              ]
+            }
+          }
         ]
+      }
+    },
+    "/production/lots": {
+      "get": {
+        "operationId": "get_production_lots",
+        "summary": "Consultar únicamente lotes liberados sin bloqueos",
+        "tags": [
+          "Lotes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id_lote": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "codigo_lote": {
+                            "type": "string"
+                          },
+                          "producto": {
+                            "type": "string"
+                          },
+                          "variedad": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "id_productor": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "estado": {
+                            "type": "string"
+                          },
+                          "peso_kg": {
+                            "oneOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              }
+                            ]
+                          },
+                          "unidad_medida": {
+                            "type": "string"
+                          },
+                          "fecha_llegada_prevista": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id_lote",
+                          "codigo_lote",
+                          "producto",
+                          "variedad",
+                          "id_productor",
+                          "estado",
+                          "peso_kg",
+                          "unidad_medida",
+                          "fecha_llegada_prevista"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "last_page"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission or role denied"
+          },
+          "404": {
+            "description": "Record not found"
+          },
+          "409": {
+            "description": "State conflict or master value in use"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/incident-responsibles": {
+      "get": {
+        "operationId": "get_incident_responsibles",
+        "summary": "Seleccionar responsables activos y autorizados de la empresa",
+        "tags": [
+          "Incidencias"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "last_page"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission or role denied"
+          },
+          "404": {
+            "description": "Record not found"
+          },
+          "409": {
+            "description": "State conflict or master value in use"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "description": "Requiere incidencias.crear. El seguimiento exige responsable asignado o supervisor autorizado; cerrar/reabrir exige SUPERVISOR con incidencias.cerrar."
+      }
+    },
+    "/lots/{lot}/incident-evidences": {
+      "get": {
+        "operationId": "get_lots_lot_incident_evidences",
+        "summary": "Seleccionar fotografías del lote para el seguimiento",
+        "tags": [
+          "Incidencias"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id_evidencia": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "id_inspeccion": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "fruto": {
+                            "type": "object",
+                            "properties": {
+                              "numero": {
+                                "type": "integer",
+                                "minimum": 1
+                              },
+                              "codigo": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "numero",
+                              "codigo"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id_evidencia",
+                          "id_inspeccion",
+                          "fruto"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "last_page": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "current_page",
+                        "last_page"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission or role denied"
+          },
+          "404": {
+            "description": "Record not found"
+          },
+          "409": {
+            "description": "State conflict or master value in use"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "description": "Requiere incidencias.ver. El seguimiento exige responsable asignado o supervisor autorizado; cerrar/reabrir exige SUPERVISOR con incidencias.cerrar."
+      }
+    },
+    "/incidents/{incident}/history": {
+      "get": {
+        "operationId": "get_incidents_incident_history",
+        "summary": "Consultar historial de seguimiento de la incidencia",
+        "tags": [
+          "Incidencias"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "evento": {
+                            "type": "string"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "cambios": {
+                            "oneOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": true
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "evento",
+                          "created_at",
+                          "cambios"
+                        ]
+                      }
+                    },
+                    "current_page": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "last_page": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "current_page",
+                    "last_page"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission or role denied"
+          },
+          "404": {
+            "description": "Record not found"
+          },
+          "409": {
+            "description": "State conflict or master value in use"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "incident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "description": "Requiere incidencias.ver. El seguimiento exige responsable asignado o supervisor autorizado; cerrar/reabrir exige SUPERVISOR con incidencias.cerrar."
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "operationId": "get_dashboard",
+        "summary": "Consultar trabajo pendiente según permisos y responsabilidad",
+        "tags": [
+          "Reportes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "metrics": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "href": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "value",
+                          "href"
+                        ]
+                      }
+                    },
+                    "tasks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "href": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "href"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "metrics",
+                    "tasks"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid identity"
+          },
+          "403": {
+            "description": "Permission or role denied"
+          },
+          "404": {
+            "description": "Record not found"
+          },
+          "409": {
+            "description": "State conflict or master value in use"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        }
       }
     }
   },

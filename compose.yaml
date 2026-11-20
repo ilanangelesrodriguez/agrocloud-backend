@@ -74,6 +74,8 @@ services:
       BILLING_SERVICE_URL: http://ms-billing:3000
       BILLING_SERVICE_API_KEY: ${BILLING_SERVICE_API_KEY:?Set BILLING_SERVICE_API_KEY}
       AGROCLOUD_EVENT_SECRET: ${AGROCLOUD_EVENT_SECRET:?Set AGROCLOUD_EVENT_SECRET}
+      NOTIFICATIONS_EVENT_URL: http://ms-notifications:3000/api/v1/internal/events/identity
+      IDENTITY_EVENT_SECRET: ${IDENTITY_EVENT_SECRET:?Set IDENTITY_EVENT_SECRET}
       IDENTITY_BILLING_SANDBOX_CHECKOUT_ENABLED: ${IDENTITY_BILLING_SANDBOX_CHECKOUT_ENABLED:-false}
       IDENTITY_BILLING_OFFERS: ${IDENTITY_BILLING_OFFERS:-}
       SUNAT_RUC_URL: ${SUNAT_RUC_URL:-}
@@ -104,6 +106,17 @@ services:
       postgres:
         condition: service_healthy
     volumes: [identity-keys:/app/storage/app/identity]
+
+  identity-scheduler:
+    build: *identity-build
+    environment: *identity-env
+    command: [php, artisan, schedule:work]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes: [identity-keys:/app/storage/app/identity]
+    restart: unless-stopped
+    stop_grace_period: 45s
 
   ms-agricultural:
     build: &agricultural-build
@@ -178,6 +191,8 @@ services:
       CULQI_WEBHOOK_TOKEN: ${CULQI_WEBHOOK_TOKEN:?Set CULQI_WEBHOOK_TOKEN}
       AGROCLOUD_EVENT_URL: ${AGROCLOUD_EVENT_URL:-http://ms-identity:8000/api/v1/internal/billing/events}
       AGROCLOUD_EVENT_SECRET: ${AGROCLOUD_EVENT_SECRET:?Set AGROCLOUD_EVENT_SECRET}
+      NOTIFICATIONS_EVENT_URL: http://ms-notifications:3000/api/v1/internal/events/billing
+      BILLING_EVENT_SECRET: ${BILLING_EVENT_SECRET:?Set BILLING_EVENT_SECRET}
       OUTBOX_TIMER_ENABLED: ${BILLING_OUTBOX_TIMER_ENABLED:-true}
     ports: ["127.0.0.1:${BILLING_PORT:-4001}:3000"]
     depends_on:
@@ -208,8 +223,8 @@ services:
       IDENTITY_SERVICE_URL: http://ms-identity:8000
       IDENTITY_SERVICE_API_KEY: ${IDENTITY_SERVICE_API_KEY:?Set IDENTITY_SERVICE_API_KEY}
       AGRICULTURAL_EVENT_SECRET: ${AGRICULTURAL_EVENT_SECRET:?Set AGRICULTURAL_EVENT_SECRET}
-      IDENTITY_EVENT_SECRET: ${IDENTITY_EVENT_SECRET:-}
-      BILLING_EVENT_SECRET: ${BILLING_EVENT_SECRET:-}
+      IDENTITY_EVENT_SECRET: ${IDENTITY_EVENT_SECRET:?Set IDENTITY_EVENT_SECRET}
+      BILLING_EVENT_SECRET: ${BILLING_EVENT_SECRET:?Set BILLING_EVENT_SECRET}
       NOTIFICATIONS_OPERATOR_KEY: ${NOTIFICATIONS_OPERATOR_KEY:-}
       FRONTEND_URL: ${NOTIFICATIONS_FRONTEND_URL:-http://localhost:3000}
       MAIL_ENABLED: ${NOTIFICATIONS_MAIL_ENABLED:-false}

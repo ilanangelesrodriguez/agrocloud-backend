@@ -48,6 +48,20 @@ class CatalogController extends Controller
             abort_if($item->tipo === 'unidad', 422);
             $name = trim($data['nombre']);
             abort_if($name === '', 422);
+            if ($name !== $item->nombre) {
+                $references = match ($item->tipo) {
+                    'producto' => ['lote' => 'producto', 'sampling_procedures' => 'producto'],
+                    'variedad' => ['lote' => 'variedad'],
+                    'metodo' => ['sampling_procedures' => 'metodo', 'muestreo' => 'metodo'],
+                    'defecto' => ['hallazgo_manual' => 'clase'],
+                    'categoria' => ['dictamen_calidad' => 'categoria'],
+                    'motivo' => ['dictamen_calidad' => 'motivo'], default => [],
+                };
+                foreach ($references as $table => $column) {
+                    abort_if(DB::table($table)->where('id_empresa', $company)->whereRaw('LOWER(TRIM('.$column.')) = ?', [mb_strtolower(trim($item->nombre))])->exists(), 409,
+                        'No se puede renombrar un maestro en uso. Deshabilítalo y registra un valor nuevo para conservar el historial.');
+                }
+            }
             $key = hash('sha256', $company.'|'.$item->tipo.'|'.($item->parent_id ?? '').'|'.mb_strtolower($name));
             abort_if(DB::table('maestro_valores')->where('clave', $key)->where('id', '<>', $catalog)->exists(), 409, 'Catalog value already exists.');
             DB::table('maestro_valores')->where('id', $catalog)->where('id_empresa', $company)->update(['nombre' => $name, 'clave' => $key, 'updated_at' => now()]);

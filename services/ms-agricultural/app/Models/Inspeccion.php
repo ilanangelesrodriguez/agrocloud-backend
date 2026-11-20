@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use App\Shared\Tenancy\BelongsToCompany;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Inspeccion extends Model
 {
@@ -36,6 +38,31 @@ class Inspeccion extends Model
     public function hallazgos(): HasMany
     {
         return $this->hasMany(HallazgoManual::class, 'id_inspeccion', 'id_inspeccion');
+    }
+
+    public function latestDecision(): HasOne
+    {
+        return $this->hasOne(DictamenCalidad::class, 'id_inspeccion', 'id_inspeccion')->ofMany('id_dictamen', 'max');
+    }
+
+    public function scopeDecisionStatus(Builder $query, string $status): void
+    {
+        if ($status === 'COMPLETED') {
+            $query->whereHas('latestDecision', fn ($decision) => $decision->whereIn('decision', ['APROBADO', 'RECHAZADO']));
+
+            return;
+        }
+        $query->where('estado', 'VALIDADA')->whereNotExists(function ($newer): void {
+            $newer->selectRaw('1')->from('inspeccion as newer')
+                ->whereColumn('newer.id_empresa', 'inspeccion.id_empresa')
+                ->whereColumn('newer.id_muestreo', 'inspeccion.id_muestreo')
+                ->whereColumn('newer.id_inspeccion', '>', 'inspeccion.id_inspeccion');
+        });
+        if ($status === 'OBSERVED') {
+            $query->whereHas('latestDecision', fn ($decision) => $decision->where('decision', 'OBSERVADO')->whereIn('tipo_observacion', ['DOCUMENTACION', 'CORRECCION_ADMINISTRATIVA']));
+        } else {
+            $query->whereDoesntHave('dictamenes');
+        }
     }
 
     public function dictamenes(): HasMany

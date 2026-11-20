@@ -290,7 +290,7 @@ export function noticeFor(source: Source, event: DomainEvent): Notice {
         kind: 'INCIDENCIA_ASIGNADA',
         title: 'Incidencia operativa abierta',
         priority: event.data.severity === 'CRITICA' ? 'critical' : 'high',
-        permissions: ['calidad.clasificar'],
+        permissions: ['incidencias.cerrar'],
         explicitIds: ((event.data.recipientIds ?? []) as number[]).map(id),
       };
     case 'incident.updated':
@@ -299,7 +299,7 @@ export function noticeFor(source: Source, event: DomainEvent): Notice {
         kind: 'INCIDENCIA_SEGUIMIENTO',
         title: 'Seguimiento de incidencia: ' + String(event.data.status),
         priority: 'high',
-        permissions: ['calidad.clasificar'],
+        permissions: ['incidencias.cerrar'],
       };
     case 'evidence.analysis_failed':
       return {

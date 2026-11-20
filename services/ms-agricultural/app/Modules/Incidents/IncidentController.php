@@ -10,6 +10,8 @@ use App\Models\Incidencia;
 use App\Models\Lote;
 use App\Shared\Events\EventOutbox;
 use App\Shared\Events\Traceability;
+use App\Shared\Tenancy\CompanyContext;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +26,31 @@ class IncidentController extends Controller
         }
 
         return AgriculturalResource::collection(Incidencia::when($lot !== null, fn ($query) => $query->where('id_lote', $lot))->orderByDesc('id')->paginate(25));
+    }
+
+    public function responsibles(Request $request, IdentityClient $identity): JsonResponse
+    {
+        $data = $request->validate(['page' => ['nullable', 'integer', 'min:1']]);
+        $company = app(CompanyContext::class)->company();
+        $result = $identity->call('GET', '/companies/'.$company.'/recipients', ['permission' => 'incidencias.ver', 'page' => $data['page'] ?? 1]);
+        $items = collect($result['data'] ?? [])->map(fn ($user) => ['id' => (int) $user['id_usuario'], 'name' => trim(($user['nombre'] ?? '').' '.($user['apellido'] ?? ''))])->values();
+
+        return response()->json(['data' => $items, 'meta' => ['current_page' => (int) $result['current_page'], 'last_page' => (int) $result['last_page']]]);
+    }
+
+    public function evidences(int $lot): AnonymousResourceCollection
+    {
+        Lote::findOrFail($lot);
+
+        return AgriculturalResource::collection(EvidenciaInspeccion::select('id_evidencia', 'id_inspeccion', 'id_fruto')->with('fruto:id,numero,codigo')->whereHas('inspeccion.muestreo', fn ($query) => $query->where('id_lote', $lot))->orderByDesc('id_evidencia')->paginate(25));
+    }
+
+    public function history(int $incident): JsonResponse
+    {
+        Incidencia::findOrFail($incident);
+
+        return response()->json(DB::table('eventos_trazabilidad')->where('id_empresa', app(CompanyContext::class)->company())
+            ->where('entidad', 'Incidencia')->where('registro', $incident)->orderByDesc('id')->paginate(25));
     }
 
     public function store(Request $request, int $lot, IdentityClient $identity): AgriculturalResource
@@ -41,7 +68,7 @@ class IncidentController extends Controller
                 $record->update(['estado' => 'RETENIDO']);
             }
             Traceability::record($incident, $lot, 'INCIDENCIA_ABIERTA', $data);
-            EventOutbox::add('incident.opened', ['lotId' => $lot, 'incidentId' => $incident->getKey(), 'severity' => $data['gravedad'], 'recipientIds' => [(int) $data['responsable']], 'recipientPermissions' => ['calidad.clasificar']]);
+            EventOutbox::add('incident.opened', ['lotId' => $lot, 'incidentId' => $incident->getKey(), 'severity' => $data['gravedad'], 'recipientIds' => [(int) $data['responsable']], 'recipientPermissions' => ['incidencias.cerrar']]);
 
             return $incident;
         }, 3);
@@ -57,7 +84,7 @@ class IncidentController extends Controller
         $result = DB::transaction(function () use ($request, $incident, $initial, $data): Incidencia {
             $lot = Lote::lockForUpdate()->findOrFail($initial->id_lote);
             $record = Incidencia::lockForUpdate()->findOrFail($incident);
-            $supervisor = $request->user()->rol->codigo === 'SUPERVISOR';
+            $supervisor = $request->user()->rol->codigo === 'SUPERVISOR' && $request->user()->hasPermission('incidencias.cerrar');
             abort_unless($supervisor || (int) $record->responsable === $request->user()->id_usuario, 403);
             $allowed = match ($record->estado) {
                 'ABIERTA' => ['EN_ATENCION'], 'EN_ATENCION' => ['RESUELTA'],
@@ -76,7 +103,7 @@ class IncidentController extends Controller
                 $lot->update(['estado' => 'CLASIFICADO']);
             }
             Traceability::record($record, $lot->getKey(), 'INCIDENCIA_SEGUIMIENTO', $data);
-            EventOutbox::add('incident.updated', ['lotId' => $lot->getKey(), 'incidentId' => $record->getKey(), 'status' => $data['estado'], 'recipientPermissions' => ['calidad.clasificar']]);
+            EventOutbox::add('incident.updated', ['lotId' => $lot->getKey(), 'incidentId' => $record->getKey(), 'status' => $data['estado'], 'recipientPermissions' => ['incidencias.cerrar']]);
 
             return $record;
         }, 3);

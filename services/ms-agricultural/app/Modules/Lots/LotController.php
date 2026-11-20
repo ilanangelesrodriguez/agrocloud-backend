@@ -34,9 +34,19 @@ class LotController extends Controller
         return AgriculturalResource::collection($query->orderByDesc('id_lote')->paginate(25));
     }
 
-    public function show(int $lot): AgriculturalResource
+    public function released(Request $request): AnonymousResourceCollection
     {
-        return new AgriculturalResource(Lote::with(['productor', 'recepcion', 'muestreos.inspecciones.dictamenes'])->findOrFail($lot));
+        $request->merge(['estado' => 'CLASIFICADO']);
+
+        return $this->index($request);
+    }
+
+    public function show(Request $request, int $lot): AgriculturalResource
+    {
+        $record = Lote::with(['productor', 'recepcion', 'muestreos.inspecciones.dictamenes'])->findOrFail($lot);
+        $record->setAttribute('workflow', $record->workflowSummary($request->user()));
+
+        return new AgriculturalResource($record);
     }
 
     public function store(LotRequest $request, CatalogService $catalog, UsageService $usage, LotService $lots): AgriculturalResource
