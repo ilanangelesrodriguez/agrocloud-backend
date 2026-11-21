@@ -76,11 +76,23 @@ export function parseEvent(source: Source, body: unknown): DomainEvent {
       'currency',
       'kind',
       'provider_charge_id',
+      'attempt_id',
     ]);
     const reference = text(payload.order_reference, 36);
     if (
-      payload.type !== 'payment.succeeded' ||
-      payload.event_id !== 'payment.succeeded:' + reference ||
+      ![
+        'payment.succeeded',
+        'payment.failed',
+        'payment.reconciliation_required',
+      ].includes(String(payload.type)) ||
+      payload.event_id !==
+        (payload.type === 'payment.succeeded'
+          ? 'payment.succeeded:' + reference
+          : String(payload.type) +
+            ':' +
+            reference +
+            ':' +
+            text(payload.attempt_id, 24)) ||
       !/^[A-Za-z0-9_-]{8,36}$/.test(reference) ||
       !Number.isSafeInteger(payload.amount_cents) ||
       Number(payload.amount_cents) < 100 ||
@@ -93,10 +105,15 @@ export function parseEvent(source: Source, body: unknown): DomainEvent {
       throw new BadRequestException('Invalid billing event.');
     if (payload.provider_charge_id !== undefined)
       text(payload.provider_charge_id, 100);
+    if (
+      payload.type !== 'payment.succeeded' &&
+      !/^[a-f0-9]{24}$/.test(String(payload.attempt_id))
+    )
+      throw new BadRequestException('Invalid payment attempt.');
     return {
       eventId: text(payload.event_id, 150),
       companyId: String(numericId(payload.company_id)),
-      type: 'payment.succeeded',
+      type: String(payload.type),
       data: payload,
       payload,
     };
@@ -120,21 +137,121 @@ export function parseEvent(source: Source, body: unknown): DomainEvent {
   )
     throw new BadRequestException('Invalid event version or timestamp.');
   if (source === 'identity') {
-    if (type !== 'account.security_notice')
+    if (
+      ![
+        'account.security_notice',
+        'subscription.notice',
+        'account.activity_notice',
+      ].includes(type)
+    )
       throw new BadRequestException('Unsupported Identity event.');
-    const data = record(payload.data, ['recipientIds', 'code']);
+    const data = record(payload.data, [
+      'recipientIds',
+      'code',
+      'orderReference',
+      'planName',
+      'expiresAt',
+      'amountCents',
+      'currency',
+      'purchaseKind',
+      'quantity',
+      'resource',
+      'threshold',
+      'consumed',
+      'limit',
+      'daysRemaining',
+    ]);
     if (
       ![
         'SECURITY_NOTICE',
         'USER_ACCESS_CHANGED',
         'SUBSCRIPTION_UPDATED',
+        'SUBSCRIPTION_EXPIRING',
+        'SUBSCRIPTION_EXPIRED',
+        'QUOTA_THRESHOLD',
+        'USER_INVITED',
+        'COMPANY_APPROVED',
       ].includes(String(data.code))
     )
-      throw new BadRequestException('Unsupported security notice.');
+      throw new BadRequestException('Unsupported Identity notice.');
     const ids = data.recipientIds;
     if (!Array.isArray(ids) || !ids.length || ids.length > 10000)
       throw new BadRequestException('Explicit recipients required.');
     ids.forEach(numericId);
+    const business = [
+      'SUBSCRIPTION_UPDATED',
+      'SUBSCRIPTION_EXPIRING',
+      'SUBSCRIPTION_EXPIRED',
+      'QUOTA_THRESHOLD',
+    ];
+    if (
+      (type === 'subscription.notice' &&
+        !business.includes(String(data.code))) ||
+      (type === 'account.activity_notice' &&
+        !['USER_INVITED', 'COMPANY_APPROVED'].includes(String(data.code))) ||
+      (type === 'account.security_notice' &&
+        ![
+          'SECURITY_NOTICE',
+          'USER_ACCESS_CHANGED',
+          'SUBSCRIPTION_UPDATED',
+        ].includes(String(data.code)))
+    )
+      throw new BadRequestException('Event type and notice code do not match.');
+    if (type === 'subscription.notice') {
+      const expiryValue = text(data.expiresAt, 50);
+      if (
+        !/(Z|[+-]\d{2}:\d{2})$/.test(expiryValue) ||
+        !Number.isFinite(Date.parse(expiryValue))
+      )
+        throw new BadRequestException('Invalid subscription expiry.');
+      if (data.code !== 'QUOTA_THRESHOLD') {
+        text(data.planName, 150);
+      }
+      if (data.code === 'SUBSCRIPTION_UPDATED') {
+        if (
+          !/^[A-Za-z0-9_-]{8,36}$/.test(text(data.orderReference, 36)) ||
+          !['PLAN', 'RENEWAL', 'USER_ADDON', 'LOT_ADDON', 'AI_ADDON'].includes(
+            String(data.purchaseKind),
+          ) ||
+          !Number.isSafeInteger(data.amountCents) ||
+          Number(data.amountCents) < 100 ||
+          Number(data.amountCents) > 999900 ||
+          data.currency !== 'PEN'
+        )
+          throw new BadRequestException('Invalid subscription purchase.');
+        if (
+          String(data.purchaseKind).endsWith('_ADDON') &&
+          (!Number.isSafeInteger(data.quantity) ||
+            Number(data.quantity) < 1 ||
+            Number(data.quantity) > 1000000 ||
+            !['usuarios', 'lotes', 'analisis_ia'].includes(
+              String(data.resource),
+            ))
+        )
+          throw new BadRequestException('Invalid additional quota.');
+      }
+      if (
+        data.code === 'SUBSCRIPTION_EXPIRING' &&
+        (!Number.isSafeInteger(data.daysRemaining) ||
+          ![7, 3, 1].includes(Number(data.daysRemaining)))
+      )
+        throw new BadRequestException('Invalid expiry interval.');
+      if (
+        data.code === 'QUOTA_THRESHOLD' &&
+        (!['usuarios', 'lotes', 'analisis_ia'].includes(
+          String(data.resource),
+        ) ||
+          !Number.isSafeInteger(data.threshold) ||
+          ![80, 100].includes(Number(data.threshold)) ||
+          !Number.isSafeInteger(data.consumed) ||
+          Number(data.consumed) < 0 ||
+          !Number.isSafeInteger(data.limit) ||
+          Number(data.limit) < 1 ||
+          Number(data.consumed) <
+            (Number(data.limit) * Number(data.threshold)) / 100)
+      )
+        throw new BadRequestException('Invalid quota threshold.');
+    }
     return { eventId, companyId, type, data, payload };
   }
   if (!agriculturalTypes.includes(type))
@@ -195,34 +312,171 @@ export function noticeFor(source: Source, event: DomainEvent): Notice {
     permissions: [],
     explicitIds: [],
   };
-  if (source === 'identity')
+  if (
+    source === 'identity' &&
+    [
+      'SUBSCRIPTION_UPDATED',
+      'SUBSCRIPTION_EXPIRING',
+      'SUBSCRIPTION_EXPIRED',
+      'QUOTA_THRESHOLD',
+    ].includes(String(event.data.code))
+  ) {
+    const data = event.data;
+    const resource = (
+      {
+        usuarios: 'usuarios',
+        lotes: 'lotes',
+        analisis_ia: 'análisis de IA',
+      } as Record<string, string>
+    )[String(data.resource)];
+    const expiry = data.expiresAt
+      ? new Intl.DateTimeFormat('es-PE', {
+          dateStyle: 'long',
+          timeZone: 'America/Lima',
+        }).format(new Date(String(data.expiresAt)))
+      : '';
+    const amount = data.amountCents
+      ? new Intl.NumberFormat('es-PE', {
+          style: 'currency',
+          currency: 'PEN',
+        }).format(Number(data.amountCents) / 100)
+      : '';
+    let title = 'Suscripción actualizada';
+    let message = 'Se actualizaron el plan o los cupos de tu empresa.';
+    if (data.code === 'SUBSCRIPTION_UPDATED' && data.purchaseKind) {
+      const addon = String(data.purchaseKind).endsWith('_ADDON');
+      title = addon
+        ? 'Cupos adicionales disponibles'
+        : data.purchaseKind === 'RENEWAL'
+          ? 'Tu plan ha sido renovado'
+          : 'Tu plan ha sido activado';
+      message = addon
+        ? 'Se agregaron ' +
+          data.quantity +
+          ' cupos de ' +
+          resource +
+          '. Pago confirmado: ' +
+          amount +
+          '. Orden ' +
+          data.orderReference +
+          '.'
+        : 'Plan ' +
+          data.planName +
+          ' disponible. Pago: ' +
+          amount +
+          '. Vencimiento: ' +
+          expiry +
+          '. Orden ' +
+          data.orderReference +
+          '.';
+    } else if (data.code === 'SUBSCRIPTION_EXPIRING') {
+      title =
+        'Tu suscripción vence en ' +
+        data.daysRemaining +
+        (data.daysRemaining === 1 ? ' día' : ' días');
+      message =
+        'El plan ' +
+        data.planName +
+        ' vence el ' +
+        expiry +
+        '. Revisa las opciones de renovación para conservar tu acceso.';
+    } else if (data.code === 'SUBSCRIPTION_EXPIRED') {
+      title = 'Tu suscripción ha vencido';
+      message =
+        'El plan ' +
+        data.planName +
+        ' venció el ' +
+        expiry +
+        '. Revisa las opciones para renovar.';
+    } else if (data.code === 'QUOTA_THRESHOLD') {
+      title =
+        data.threshold === 100
+          ? 'Cupo de ' + resource + ' agotado'
+          : 'Has alcanzado el 80 % del cupo de ' + resource;
+      message =
+        'Uso actual: ' +
+        data.consumed +
+        ' de ' +
+        data.limit +
+        '. Revisa tu suscripción o los complementos disponibles.';
+    }
+    return {
+      ...base,
+      kind: String(data.code),
+      title,
+      message,
+      destination: '/settings/subscription',
+      priority: 'high',
+      category: 'billing',
+      explicitIds: (data.recipientIds as number[]).map(id),
+    };
+  }
+  if (
+    source === 'identity' &&
+    ['USER_INVITED', 'COMPANY_APPROVED'].includes(String(event.data.code))
+  )
     return {
       ...base,
       kind: String(event.data.code),
       title:
-        event.data.code === 'SUBSCRIPTION_UPDATED'
-          ? 'Suscripción actualizada'
-          : 'Seguridad de tu cuenta AgroCloud',
+        event.data.code === 'USER_INVITED'
+          ? 'Invitación de usuario registrada'
+          : 'Tu empresa fue aprobada',
       message:
-        event.data.code === 'SUBSCRIPTION_UPDATED'
-          ? 'Se actualizaron el plan o los cupos de tu empresa.'
-          : 'Se registró un cambio de seguridad o acceso en tu cuenta. Revisa tu cuenta o contacta al administrador.',
+        event.data.code === 'USER_INVITED'
+          ? 'Se registró una invitación y se programó el correo de activación. Puedes consultar su estado en la gestión de usuarios.'
+          : 'La empresa fue aprobada y tu cuenta está activada. Ya puedes ingresar a AgroCloud.',
+      destination:
+        event.data.code === 'USER_INVITED'
+          ? '/settings/users'
+          : '/settings/subscription',
+      explicitIds: (event.data.recipientIds as number[]).map(id),
+    };
+  if (source === 'identity')
+    return {
+      ...base,
+      kind: String(event.data.code),
+      title: 'Seguridad de tu cuenta AgroCloud',
+      message:
+        'Se registró un cambio de seguridad o acceso en tu cuenta. Revisa tu cuenta o contacta al administrador.',
       priority: 'critical',
       category: 'security',
-      destination:
-        event.data.code === 'SUBSCRIPTION_UPDATED'
-          ? '/settings/subscription'
-          : '/settings/profile',
+      destination: '/settings/profile',
       permissions: [],
       explicitIds: (event.data.recipientIds as number[]).map(id),
     };
   if (source === 'billing')
     return {
       ...base,
-      kind: 'PAGO_CONFIRMADO',
-      title: 'Pago confirmado',
+      kind:
+        event.type === 'payment.failed'
+          ? 'PAGO_RECHAZADO'
+          : event.type === 'payment.reconciliation_required'
+            ? 'PAGO_EN_VERIFICACION'
+            : 'PAGO_CONFIRMADO',
+      title:
+        event.type === 'payment.failed'
+          ? 'Pago rechazado'
+          : event.type === 'payment.reconciliation_required'
+            ? 'Estamos verificando tu pago'
+            : 'Pago confirmado',
       message:
-        'Se confirmó el pago de la orden ' + event.data.order_reference + '.',
+        event.type === 'payment.failed'
+          ? 'El proveedor rechazó el cargo de la orden ' +
+            event.data.order_reference +
+            '. Puedes volver a intentarlo con otra tarjeta.'
+          : event.type === 'payment.reconciliation_required'
+            ? 'El resultado de la orden ' +
+              event.data.order_reference +
+              ' aún no está confirmado. No repitas el cobro; consulta su estado o solicita conciliación.'
+            : 'Se confirmó el pago de ' +
+              new Intl.NumberFormat('es-PE', {
+                style: 'currency',
+                currency: 'PEN',
+              }).format(Number(event.data.amount_cents) / 100) +
+              ' de la orden ' +
+              event.data.order_reference +
+              '. La activación se confirmará en un aviso separado.',
       destination: '/settings/subscription',
       category: 'billing',
       priority: 'high',

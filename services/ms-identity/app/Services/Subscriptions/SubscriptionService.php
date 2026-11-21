@@ -298,10 +298,64 @@ class SubscriptionService
             ]);
             DB::table('identity_processed_events')->insert(['event_id' => $event['event_id'], 'payload_hash' => $bodyHash, 'processed_at' => now()]);
             $admins = User::where('id_empresa', $order->company_id)->where('estado', true)->whereHas('rol', fn ($query) => $query->where('codigo', 'ADMIN')->where('estado', true))->pluck('id_usuario')->map(fn ($id) => (int) $id)->all();
-            NotificationOutbox::enqueue((int) $order->company_id, $admins, 'SUBSCRIPTION_UPDATED');
+            $subscription = DB::table('suscripciones')->where('id_empresa', $order->company_id)->first();
+            NotificationOutbox::enqueue((int) $order->company_id, $admins, 'SUBSCRIPTION_UPDATED', [
+                'orderReference' => $order->reference, 'planName' => $offer['name'] ?? $subscription->plan,
+                'expiresAt' => CarbonImmutable::parse($subscription->vence_en)->toIso8601String(),
+                'amountCents' => (int) $order->amount_cents, 'currency' => $order->currency, 'purchaseKind' => $order->kind,
+                ...(isset($resource) && isset($offer['quantity']) ? ['resource' => $resource, 'quantity' => (int) $offer['quantity']] : []),
+            ], 'payment:'.$order->reference);
 
             return true;
         }, 3);
+    }
+
+    public function notifyLifecycle(): int
+    {
+        $count = 0;
+        DB::table('suscripciones')->where('estado', 'ACTIVA')->orderBy('id')->chunkById(200, function ($subscriptions) use (&$count): void {
+            foreach ($subscriptions as $candidate) {
+                DB::transaction(function () use ($candidate, &$count): void {
+                    $company = Empresa::where('estado', true)->lockForUpdate()->find($candidate->id_empresa);
+                    if (! $company) {
+                        return;
+                    }
+                    $subscription = DB::table('suscripciones')->where('id', $candidate->id)->where('estado', 'ACTIVA')->first();
+                    if (! $subscription) {
+                        return;
+                    }
+                    $admins = User::where('id_empresa', $candidate->id_empresa)->where('estado', true)
+                        ->whereHas('rol', fn ($query) => $query->where('codigo', 'ADMIN')->where('estado', true))
+                        ->pluck('id_usuario')->map(fn ($id) => (int) $id)->all();
+                    $expires = CarbonImmutable::parse($subscription->vence_en);
+                    $period = $subscription->id.':'.$expires->toIso8601String();
+                    $days = (int) CarbonImmutable::now('America/Lima')->startOfDay()->diffInDays($expires->setTimezone('America/Lima')->startOfDay(), false);
+                    $data = ['planName' => $subscription->plan, 'expiresAt' => $expires->toIso8601String()];
+                    if ($expires->isPast()) {
+                        NotificationOutbox::enqueue((int) $candidate->id_empresa, $admins, 'SUBSCRIPTION_EXPIRED', $data, $period.':expired');
+                    } elseif (in_array($days, [7, 3, 1], true)) {
+                        NotificationOutbox::enqueue((int) $candidate->id_empresa, $admins, 'SUBSCRIPTION_EXPIRING', [...$data, 'daysRemaining' => $days], $period.':'.$days);
+                    }
+                    if ($expires->isFuture()) {
+                        foreach (DB::table('derechos_acceso')->where('id_empresa', $candidate->id_empresa)->whereIn('recurso', ['usuarios', 'lotes', 'analisis_ia'])->get() as $right) {
+                            $used = $right->recurso === 'usuarios' ? User::where('id_empresa', $candidate->id_empresa)->count() : (int) $right->consumido;
+                            $limit = (int) $right->limite;
+                            if ($limit < 1 || $used < $limit * 0.8) {
+                                continue;
+                            }
+                            $threshold = $used >= $limit ? 100 : 80;
+                            NotificationOutbox::enqueue((int) $candidate->id_empresa, $admins, 'QUOTA_THRESHOLD', [
+                                'resource' => $right->recurso, 'threshold' => $threshold, 'consumed' => $used, 'limit' => $limit,
+                                'expiresAt' => $expires->toIso8601String(),
+                            ], $period.':'.$right->recurso.':'.$limit.':'.$threshold);
+                        }
+                    }
+                    $count++;
+                }, 3);
+            }
+        });
+
+        return $count;
     }
 
     public function consume(int $company, string $requestId, string $resource, int $quantity): array

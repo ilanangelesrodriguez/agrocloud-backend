@@ -59,7 +59,11 @@ export class EventsWorker {
       if (notice.explicitIds.length) {
         const explicitPermission =
           event.source === 'identity'
-            ? ''
+            ? notice.category === 'billing'
+              ? 'suscripciones.ver'
+              : notice.kind === 'USER_INVITED'
+                ? 'usuarios.ver'
+                : ''
             : parsed.type.startsWith('incident.')
               ? 'incidencias.ver'
               : 'lotes.ver';
@@ -145,14 +149,22 @@ export class EventsWorker {
         );
       });
     } catch (error: unknown) {
-      const details = error && typeof error === 'object' ? error as Record<string, unknown> : {};
-      const driver = details.driverError && typeof details.driverError === 'object'
-        ? details.driverError as Record<string, unknown>
-        : {};
+      const details =
+        error && typeof error === 'object'
+          ? (error as Record<string, unknown>)
+          : {};
+      const driver =
+        details.driverError && typeof details.driverError === 'object'
+          ? (details.driverError as Record<string, unknown>)
+          : {};
       console.error('Notification event processing failed.', {
         type: error instanceof Error ? error.name : 'UnknownError',
-        code: typeof driver.code === 'string' ? driver.code.slice(0, 20)
-          : typeof details.code === 'string' ? details.code.slice(0, 20) : 'UNKNOWN',
+        code:
+          typeof driver.code === 'string'
+            ? driver.code.slice(0, 20)
+            : typeof details.code === 'string'
+              ? details.code.slice(0, 20)
+              : 'UNKNOWN',
         source: event.source,
       });
       try {
@@ -168,16 +180,25 @@ export class EventsWorker {
           ],
         );
       } catch (recoveryError: unknown) {
-        const recovery = recoveryError && typeof recoveryError === 'object'
-          ? recoveryError as Record<string, unknown>
-          : {};
-        const cause = recovery.driverError && typeof recovery.driverError === 'object'
-          ? recovery.driverError as Record<string, unknown>
-          : {};
+        const recovery =
+          recoveryError && typeof recoveryError === 'object'
+            ? (recoveryError as Record<string, unknown>)
+            : {};
+        const cause =
+          recovery.driverError && typeof recovery.driverError === 'object'
+            ? (recovery.driverError as Record<string, unknown>)
+            : {};
         console.error('Notification event retry update failed.', {
-          type: recoveryError instanceof Error ? recoveryError.name : 'UnknownError',
-          code: typeof cause.code === 'string' ? cause.code.slice(0, 20)
-            : typeof recovery.code === 'string' ? recovery.code.slice(0, 20) : 'UNKNOWN',
+          type:
+            recoveryError instanceof Error
+              ? recoveryError.name
+              : 'UnknownError',
+          code:
+            typeof cause.code === 'string'
+              ? cause.code.slice(0, 20)
+              : typeof recovery.code === 'string'
+                ? recovery.code.slice(0, 20)
+                : 'UNKNOWN',
         });
         throw recoveryError;
       }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Access\NotificationOutbox;
+use App\Services\Subscriptions\SubscriptionService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -21,3 +22,9 @@ Artisan::command('identity:dispatch-notifications {--limit=100}', function (): v
 })->purpose('Deliver pending Identity notification events');
 
 Schedule::command('identity:dispatch-notifications')->everyMinute()->withoutOverlapping();
+
+Artisan::command('identity:notify-subscriptions', function (): void {
+    $this->info('Reviewed '.app(SubscriptionService::class)->notifyLifecycle().' subscription(s).');
+})->purpose('Queue deduplicated expiry and quota notifications');
+
+Schedule::command('identity:notify-subscriptions')->hourly()->withoutOverlapping();

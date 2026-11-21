@@ -8,9 +8,12 @@ export function notificationDestination(destination: string): string {
     /^\/(?:lots|inspections|samplings)\/[1-9]\d*(?:\/(?:reception|sampling|evidences))?$/.test(
       destination,
     ) ||
-    ['/notifications', '/settings/subscription', '/settings/profile'].includes(
-      destination,
-    )
+    [
+      '/notifications',
+      '/settings/subscription',
+      '/settings/profile',
+      '/settings/users',
+    ].includes(destination)
   )
     return destination;
   return '/notifications';

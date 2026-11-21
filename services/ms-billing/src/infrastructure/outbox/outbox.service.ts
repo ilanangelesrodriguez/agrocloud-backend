@@ -82,6 +82,49 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async enqueuePaymentIssue(
+    order: {
+      externalReference: string;
+      companyId: number;
+      amountCents: number;
+      currency: string;
+      kind: string;
+    },
+    attemptId: string,
+    status: 'DECLINED' | 'UNKNOWN',
+  ): Promise<void> {
+    const type = status === 'DECLINED' ? 'payment.failed' : 'payment.reconciliation_required';
+    const eventId = `${type}:${order.externalReference}:${attemptId}`;
+    try {
+      await this.events.updateOne(
+        { eventKey: 'notifications:' + eventId },
+        {
+          $setOnInsert: {
+            eventKey: 'notifications:' + eventId,
+            target: 'notifications',
+            eventType: type,
+            status: 'PENDING',
+            attempts: 0,
+            nextAttemptAt: new Date(),
+            payload: {
+              event_id: eventId,
+              type,
+              order_reference: order.externalReference,
+              company_id: order.companyId,
+              amount_cents: order.amountCents,
+              currency: order.currency,
+              kind: order.kind,
+              attempt_id: attemptId,
+            },
+          },
+        },
+        { upsert: true },
+      );
+    } catch (error: unknown) {
+      if ((error as { code?: number }).code !== 11000) throw error;
+    }
+  }
+
   async dispatchDue(limit = 20): Promise<{ attempted: number }> {
     if (
       !this.config.get<string>('AGROCLOUD_EVENT_URL') &&
@@ -156,9 +199,12 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
         'X-AgroCloud-Signature': 'sha256=' + signature,
         'X-Event-Id': String(event.payload.event_id),
       };
-      const audience = this.config.get<string>(
+      const configuredAudience = this.config.get<string>(
         notifications ? 'NOTIFICATIONS_CLOUD_RUN_AUDIENCE' : 'IDENTITY_CLOUD_RUN_AUDIENCE',
       );
+      const audience =
+        configuredAudience ||
+        (process.env.K_SERVICE || process.env.CLOUD_RUN_WORKER_POOL ? new URL(url).origin : '');
       if (audience) {
         if (new URL(url).protocol !== 'https:') throw new Error('Identity IAM requires HTTPS');
         headers['X-Serverless-Authorization'] = 'Bearer ' + (await this.identityToken(audience));
@@ -199,6 +245,13 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
         },
       );
       this.logger.warn(`No se entregó ${eventKey}; se reintentará`);
+      if (attempts >= 5)
+        this.logger.error({
+          message: 'Persistent notification delivery failure',
+          eventKey,
+          target: event.target,
+          attempts,
+        });
     }
   }
 }

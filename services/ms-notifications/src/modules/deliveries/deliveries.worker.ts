@@ -111,6 +111,12 @@ export class DeliveriesWorker {
       if (error instanceof ForbiddenException) {
         await this.finish(delivery.id, token, 'CANCELLED');
       } else {
+        if (delivery.attempts >= 5)
+          console.error('Persistent notification email failure.', {
+            delivery_id: delivery.id,
+            attempts: delivery.attempts,
+            error_type: error instanceof Error ? error.name : 'UnknownError',
+          });
         const permanent =
           typeof error === 'object' &&
           error !== null &&

@@ -41,15 +41,27 @@ export class OperatorGuard implements CanActivate {
 @Controller('api/v1/internal/operations')
 @UseGuards(OperatorGuard, RateLimitGuard)
 export class OperationsController {
-  constructor(private readonly database: Database) {}
+  constructor(
+    private readonly database: Database,
+    private readonly settings: Settings,
+  ) {}
   @Get('status')
   async status() {
     return {
+      mailEnabled: this.settings.mailEnabled,
       events: await this.database.query(
         'SELECT status,count(*)::text AS count FROM processed_events GROUP BY status',
       ),
       deliveries: await this.database.query(
         'SELECT status,count(*)::text AS count FROM notification_deliveries GROUP BY status',
+      ),
+      queueHealth: await this.database.query(
+        `SELECT 'events' AS queue,count(*) FILTER (WHERE status='FAILED')::text AS failed,
+        count(*) FILTER (WHERE status IN ('PENDING','PROCESSING') AND created_at<now()-interval '5 minutes')::text AS stalled,
+        min(created_at) FILTER (WHERE status IN ('PENDING','PROCESSING')) AS oldest_pending FROM processed_events
+        UNION ALL SELECT 'deliveries',count(*) FILTER (WHERE status='FAILED')::text,
+        count(*) FILTER (WHERE status IN ('PENDING','PROCESSING') AND created_at<now()-interval '15 minutes')::text,
+        min(created_at) FILTER (WHERE status IN ('PENDING','PROCESSING')) FROM notification_deliveries`,
       ),
     };
   }

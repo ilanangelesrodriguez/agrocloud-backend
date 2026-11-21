@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { createHash } from 'node:crypto';
 import type { Model } from 'mongoose';
@@ -12,6 +17,7 @@ import { PaymentAttempt } from './schemas/payment-attempt.schema.js';
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
   constructor(
     @InjectModel(BillingOrder.name)
     private readonly ordersModel: Model<BillingOrder>,
@@ -179,6 +185,18 @@ export class PaymentsService {
           },
         },
       );
+      try {
+        await this.outbox.enqueuePaymentIssue(
+          order,
+          String(attempt._id),
+          declined ? 'DECLINED' : 'UNKNOWN',
+        );
+      } catch {
+        this.logger.error({
+          message: 'Payment notification enqueue failed; status lookup will retry',
+          orderReference: order.externalReference,
+        });
+      }
       if (declined)
         throw new UnprocessableEntityException(
           'Culqi rechazó el cargo. Puedes utilizar otro token para reintentar.',
@@ -273,9 +291,37 @@ export class PaymentsService {
 
   async status(reference: string): Promise<Record<string, unknown>> {
     const order = await this.orders.find(reference);
+    if (order.status === 'PAID') {
+      try {
+        await this.outbox.enqueuePayment(order);
+      } catch {
+        this.logger.error({
+          message: 'Confirmed payment event recovery failed',
+          orderReference: reference,
+        });
+      }
+    }
     const latest = await this.attempts
       .findOne({ orderReference: reference })
       .sort({ createdAt: -1 });
+    if (
+      latest &&
+      ((order.status === 'PENDING' && latest.status === 'DECLINED') ||
+        (order.status === 'UNKNOWN' && latest.status === 'UNKNOWN'))
+    ) {
+      try {
+        await this.outbox.enqueuePaymentIssue(
+          order,
+          String(latest._id),
+          latest.status as 'DECLINED' | 'UNKNOWN',
+        );
+      } catch {
+        this.logger.error({
+          message: 'Payment notification recovery failed',
+          orderReference: reference,
+        });
+      }
+    }
     return {
       orderReference: reference,
       status: order.status,

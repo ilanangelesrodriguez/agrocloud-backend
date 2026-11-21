@@ -25,6 +25,8 @@ export function channels(
   category: string,
 ): { inbox: boolean; email: boolean } {
   if (category === 'security') return { inbox: true, email: true };
+  if (category === 'billing' && kind === 'SUBSCRIPTION_UPDATED')
+    return { inbox: true, email: true };
   const optional =
     priority === 'normal' &&
     (OPTIONAL_KINDS as readonly string[]).includes(kind);

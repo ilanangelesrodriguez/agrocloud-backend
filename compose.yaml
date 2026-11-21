@@ -207,7 +207,7 @@ services:
       AGROCLOUD_EVENT_SECRET: ${AGROCLOUD_EVENT_SECRET:?Set AGROCLOUD_EVENT_SECRET}
       NOTIFICATIONS_EVENT_URL: http://ms-notifications:3000/api/v1/internal/events/billing
       BILLING_EVENT_SECRET: ${BILLING_EVENT_SECRET:?Set BILLING_EVENT_SECRET}
-      OUTBOX_TIMER_ENABLED: ${BILLING_OUTBOX_TIMER_ENABLED:-true}
+      OUTBOX_TIMER_ENABLED: ${BILLING_OUTBOX_TIMER_ENABLED:-false}
     ports: ["127.0.0.1:${BILLING_PORT:-4001}:3000"]
     depends_on:
       mongo:
@@ -215,10 +215,11 @@ services:
     healthcheck: *node-health
 
   billing-outbox-worker:
-    profiles: [events]
     build: *billing-build
     environment: *billing-env
     command: [node, dist/worker.js]
+    restart: unless-stopped
+    stop_grace_period: 60s
     depends_on:
       mongo:
         condition: service_healthy
@@ -258,6 +259,7 @@ services:
     environment: *notifications-env
     command: [node, dist/worker.js]
     stop_grace_period: 180s
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy

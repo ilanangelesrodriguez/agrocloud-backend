@@ -6,8 +6,8 @@ use App\Models\Empresa;
 use App\Models\Rol;
 use App\Models\SolicitudAcceso;
 use App\Models\User;
-use App\Services\SunatRucService;
 use App\Services\Subscriptions\SubscriptionService;
+use App\Services\SunatRucService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -64,7 +64,7 @@ class AccessService
                 app(InvitationService::class)->send($user);
             }
             if ($decision === 'RECHAZADA') {
-                AccountSecurity::mailTo($entry->correo, 'ACCESS_REJECTED', 'Resultado de tu solicitud AgroCloud', 'Tu solicitud fue rechazada. Motivo: '.$reason);
+                AccountSecurity::mailTo($entry->correo, 'ACCESS_REJECTED', 'Resultado de tu solicitud AgroCloud', 'Tu solicitud fue rechazada. Motivo: '.$reason.'. Puedes corregir tus datos y presentar una nueva solicitud desde la página de acceso.');
             }
             $entry->fill(['estado' => $decision, 'motivo' => $reason, 'revisada_por' => $actor->getKey(),
                 'decidida_en' => $decision === 'EN_REVISION' ? null : now(),

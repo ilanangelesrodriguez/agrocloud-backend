@@ -20,6 +20,10 @@ class InvitationService
             $url = AccountSecurity::url('activate', ['user_id' => $user->getKey(), 'token' => $token]);
             AccountSecurity::mail($user, 'INVITATION', 'Activa tu cuenta AgroCloud', 'Enlace de un solo uso, valido 72 horas: '.$url);
             AccountSecurity::record($user, 'INVITATION_QUEUED');
+            $admins = User::where('id_empresa', $user->id_empresa)->where('estado', true)
+                ->whereHas('rol', fn ($query) => $query->where('codigo', 'ADMIN')->where('estado', true))
+                ->pluck('id_usuario')->map(fn ($id) => (int) $id)->all();
+            NotificationOutbox::enqueue((int) $user->id_empresa, $admins, 'USER_INVITED', [], 'invitation:'.$user->getKey().':'.hash('sha256', $token));
         }, 3);
     }
 
@@ -34,6 +38,9 @@ class InvitationService
                 'email_verified_at' => now(), 'estado' => true])->save();
             app(SessionService::class)->revokeAll($user);
             AccountSecurity::record($user, 'ACCOUNT_ACTIVATED');
+            if (DB::table('solicitudes_acceso')->where('id_usuario', $user->getKey())->where('id_empresa', $user->id_empresa)->where('estado', 'APROBADA')->exists()) {
+                NotificationOutbox::enqueue((int) $user->id_empresa, [(int) $user->getKey()], 'COMPANY_APPROVED', [], 'approved:'.$user->getKey());
+            }
         }, 3);
     }
 }
