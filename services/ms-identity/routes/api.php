@@ -4,9 +4,11 @@ use App\Http\Controllers\Api\V1\AccessRequestController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BillingOfferController;
 use App\Http\Controllers\Api\V1\CompanyController;
+use App\Http\Controllers\Api\V1\CompanyMediaController;
 use App\Http\Controllers\Api\V1\InternalController;
 use App\Http\Controllers\Api\V1\PublicOnboardingController;
 use App\Http\Controllers\Api\V1\SubscriptionController;
+use App\Http\Controllers\Api\V1\SelfProfileController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -47,6 +49,10 @@ Route::middleware('throttle:identity-public')->group(function (): void {
 });
 Route::middleware(['identity.auth', 'throttle:identity-api'])->group(function (): void {
     Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::patch('/auth/me', [SelfProfileController::class, 'update']);
+    Route::post('/auth/me/avatar', [SelfProfileController::class, 'uploadAvatar']);
+    Route::delete('/auth/me/avatar', [SelfProfileController::class, 'deleteAvatar']);
+    Route::post('/auth/change-password', [SelfProfileController::class, 'changePassword']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/logout-all', [AuthController::class, 'logoutAll']);
     Route::post('/auth/change-email', [AuthController::class, 'requestEmailChange']);
@@ -54,6 +60,8 @@ Route::middleware(['identity.auth', 'throttle:identity-api'])->group(function ()
     Route::get('/companies/{company}', [CompanyController::class, 'show'])->whereNumber('company')->middleware('identity.permission:empresa.ver');
     Route::post('/companies', [CompanyController::class, 'store']);
     Route::patch('/companies/{company}', [CompanyController::class, 'update'])->whereNumber('company')->middleware('identity.permission:empresa.editar');
+    Route::post('/companies/{company}/logo', [CompanyMediaController::class, 'upload'])->whereNumber('company')->middleware('identity.permission:empresa.editar');
+    Route::delete('/companies/{company}/logo', [CompanyMediaController::class, 'delete'])->whereNumber('company')->middleware('identity.permission:empresa.editar');
     Route::get('/users', [UserController::class, 'index'])->middleware('identity.permission:usuarios.ver');
     Route::get('/users/{user}', [UserController::class, 'show'])->whereNumber('user')->middleware('identity.permission:usuarios.ver');
     Route::post('/users', [UserController::class, 'store'])->middleware('identity.permission:usuarios.crear');

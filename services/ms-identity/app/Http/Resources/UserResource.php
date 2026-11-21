@@ -14,6 +14,7 @@ class UserResource extends JsonResource
             'id_usuario' => $this->id_usuario, 'id_empresa' => $this->id_empresa,
             'nombre' => $this->nombre, 'apellido' => $this->apellido, 'correo' => $this->correo,
             'telefono' => $this->telefono, 'cargo' => $this->cargo, 'estado' => $this->estado,
+            'foto_perfil_url' => $this->foto_perfil_url,
             'pending_activation' => (bool) $this->invitation_hash,
             'rol' => $this->rol?->only(['id_rol', 'codigo', 'nombre']),
             'permissions' => $this->isSuperAdmin() ? Permiso::where('estado', true)->pluck('codigo')

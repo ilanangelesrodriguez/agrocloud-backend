@@ -6,6 +6,8 @@ use App\Modules\Incidents\IncidentController;
 use App\Modules\Inspections\InspectionController;
 use App\Modules\Lots\LotController;
 use App\Modules\Producers\ProducerController;
+use App\Modules\Producers\ProducerLookupController;
+use App\Http\Controllers\UbigeoController;
 use App\Modules\Quality\QualityController;
 use App\Modules\Receptions\ReceptionController;
 use App\Modules\Reports\AiReportController;
@@ -32,6 +34,8 @@ Route::get('/ready', function (): JsonResponse {
 })->name('ready');
 
 Route::middleware(['throttle:agricultural-public', 'agricultural.auth', 'throttle:agricultural-api'])->group(function (): void {
+    Route::get('/geo', [UbigeoController::class, 'index']);
+    Route::get('/producers/ruc-lookup', [ProducerLookupController::class, 'show'])->middleware('agricultural.permission:productores.ver');
     Route::get('/producers', [ProducerController::class, 'index'])->middleware('agricultural.permission:productores.ver');
     Route::get('/producers/{producer}', [ProducerController::class, 'show'])->whereNumber('producer')->middleware('agricultural.permission:productores.ver');
     Route::post('/producers', [ProducerController::class, 'store'])->middleware('agricultural.permission:productores.crear');

@@ -25,7 +25,7 @@ class ProducerController extends Controller
 
     public function store(ProducerRequest $request): AgriculturalResource
     {
-        $data = $request->validated();
+        $data = app(\App\Support\UbigeoCatalog::class)->normalize($request->validated());
         $data['sunat_verificacion'] = app(SunatRucClient::class)->verificar($data['ruc'], $data['nombre_razon_social']);
         abort_if(Productor::where('ruc', $data['ruc'])->exists(), 422, 'Producer RUC already exists in this company.');
         $record = DB::transaction(function () use ($data): Productor {
@@ -40,7 +40,7 @@ class ProducerController extends Controller
 
     public function update(ProducerRequest $request, int $producer): AgriculturalResource
     {
-        $data = $request->validated();
+        $data = app(\App\Support\UbigeoCatalog::class)->normalize($request->validated());
         $data['sunat_verificacion'] = app(SunatRucClient::class)->verificar($data['ruc'], $data['nombre_razon_social']);
         abort_if(Productor::where('ruc', $data['ruc'])->where('id_productor', '<>', $producer)->exists(), 422);
 

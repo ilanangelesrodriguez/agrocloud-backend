@@ -15,6 +15,6 @@ class ProducerRequest extends FormRequest
     {
         return ['ruc' => ['required', 'string', 'regex:/^[0-9]{11}$/D'], 'nombre_razon_social' => ['required', 'string', 'max:200'],
             'fundo' => ['nullable', 'string', 'max:200'], 'ubicacion' => ['nullable', 'string', 'max:250'],
-            'departamento' => ['nullable', 'string', 'max:100'], 'provincia' => ['nullable', 'string', 'max:100'], 'distrito' => ['nullable', 'string', 'max:100'], 'ubigeo' => ['nullable', 'string', 'size:6']];
+            'departamento' => ['nullable', 'string', 'max:100'], 'provincia' => ['nullable', 'string', 'max:100'], 'distrito' => ['nullable', 'string', 'max:100'], 'ubigeo' => ['nullable', 'string', 'regex:/^\d{6}$/D']];
     }
 }

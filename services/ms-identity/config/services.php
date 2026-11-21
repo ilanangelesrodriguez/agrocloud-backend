@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'cloudinary' => [
+        'cloud_name' => env('CLOUDINARY_CLOUD_NAME', ''),
+        'api_key' => env('CLOUDINARY_API_KEY', ''),
+        'api_secret' => env('CLOUDINARY_API_SECRET', ''),
+    ],
     'ruc' => [
         'url' => env('SUNAT_RUC_URL', ''), 'key' => env('SUNAT_RUC_KEY', ''),
         'ca_bundle' => env('SUNAT_RUC_CA_BUNDLE'), 'cache_seconds' => (int) env('SUNAT_RUC_CACHE_SECONDS', 86400),

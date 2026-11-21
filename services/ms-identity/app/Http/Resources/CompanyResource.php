@@ -9,6 +9,6 @@ class CompanyResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return $this->resource->only(['id_empresa', 'ruc', 'razon_social', 'nombre_comercial', 'tipo_empresa', 'direccion', 'telefono', 'correo', 'estado', 'sunat_verificacion']);
+        return $this->resource->only(['id_empresa', 'ruc', 'razon_social', 'nombre_comercial', 'tipo_empresa', 'direccion', 'telefono', 'correo', 'departamento', 'provincia', 'distrito', 'ubigeo', 'estado', 'logo_url', 'sunat_verificacion']);
     }
 }

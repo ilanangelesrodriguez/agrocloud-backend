@@ -30,7 +30,7 @@ class CompanyController extends Controller
     public function store(CompanyRequest $request, SunatRucService $sunat): CompanyResource
     {
         abort_unless($request->user()->isSuperAdmin(), 403);
-        $data = $request->validated();
+        $data = app(\App\Support\UbigeoCatalog::class)->normalize($request->validated());
         $data['sunat_verificacion'] = $sunat->verificar($data['ruc'], $data['razon_social']);
 
         return new CompanyResource(Empresa::create($data));
@@ -43,6 +43,11 @@ class CompanyController extends Controller
         $data = $request->validated();
         abort_if(! $actor->isSuperAdmin() && (array_key_exists('estado', $data) || array_key_exists('ruc', $data)), 403, 'Only platform administrators can change RUC or status.');
         $record = Empresa::findOrFail($company);
+        $geoKeys = ['departamento', 'provincia', 'distrito', 'ubigeo'];
+        if (count(array_intersect($geoKeys, array_keys($data))) > 0) {
+            $existing = $record->only($geoKeys);
+            $data = array_merge($data, app(\App\Support\UbigeoCatalog::class)->normalize(array_replace($existing, array_intersect_key($data, array_flip($geoKeys)))));
+        }
         if (isset($data['ruc']) || isset($data['razon_social'])) {
             $data['sunat_verificacion'] = $sunat->verificar($data['ruc'] ?? $record->ruc, $data['razon_social'] ?? $record->razon_social);
         }

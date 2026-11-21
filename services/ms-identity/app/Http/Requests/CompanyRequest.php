@@ -22,6 +22,10 @@ class CompanyRequest extends FormRequest
             'tipo_empresa' => ['sometimes', 'nullable', 'string', 'max:80'],
             'direccion' => ['sometimes', 'nullable', 'string', 'max:250'], 'telefono' => ['sometimes', 'nullable', 'string', 'max:30'],
             'correo' => ['sometimes', 'nullable', 'email', 'max:255'], 'estado' => ['sometimes', 'boolean'],
+            'departamento' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'provincia' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'distrito' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'ubigeo' => ['sometimes', 'nullable', 'string', 'regex:/^\d{6}$/D'],
         ];
     }
 }
