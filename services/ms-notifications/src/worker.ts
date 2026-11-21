@@ -23,10 +23,16 @@ async function main(): Promise<void> {
       let worked = false;
       try {
         worked = await events.processOne();
-      } catch {
-        console.error(
-          'Event processing unavailable; persistent leases retain work.',
-        );
+      } catch (error: unknown) {
+        const details = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+        const driver = details.driverError && typeof details.driverError === 'object'
+          ? details.driverError as Record<string, unknown>
+          : {};
+        console.error('Event processing unavailable; persistent leases retain work.', {
+          type: error instanceof Error ? error.name : 'UnknownError',
+          code: typeof driver.code === 'string' ? driver.code.slice(0, 20)
+            : typeof details.code === 'string' ? details.code.slice(0, 20) : 'UNKNOWN',
+        });
       }
       if (!stop.signal.aborted) {
         try {
