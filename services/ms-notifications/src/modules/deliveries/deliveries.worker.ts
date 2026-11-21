@@ -40,7 +40,7 @@ export class DeliveriesWorker {
     const rows = await this.database.query<DeliveryRow>(
       `WITH due AS (SELECT id FROM notification_deliveries WHERE status IN ('PENDING','PROCESSING')
       AND (attempts<8 OR status='PROCESSING') AND next_attempt_at<=now() AND (locked_until IS NULL OR locked_until<now())
-      ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1)
+      ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED)
       UPDATE notification_deliveries d SET status='PROCESSING',attempts=d.attempts+1,lock_token=$1,locked_until=now()+interval '5 minutes'
       FROM due WHERE d.id=due.id RETURNING d.id,d.notification_id,d.attempts`,
       [token],
