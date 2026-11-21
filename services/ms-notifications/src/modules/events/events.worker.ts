@@ -35,7 +35,7 @@ export class EventsWorker {
     const rows = await this.database.query<EventRow>(
       `WITH due AS (SELECT source,event_id FROM processed_events
       WHERE status IN ('PENDING','PROCESSING') AND (attempts<8 OR status='PROCESSING') AND next_attempt_at<=now()
-      AND (locked_until IS NULL OR locked_until<now()) ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1)
+      AND (locked_until IS NULL OR locked_until<now()) ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED)
       UPDATE processed_events e SET status='PROCESSING',attempts=e.attempts+1,lock_token=$1,locked_until=now()+interval '5 minutes'
       FROM due WHERE e.source=due.source AND e.event_id=due.event_id RETURNING e.*`,
       [token],
