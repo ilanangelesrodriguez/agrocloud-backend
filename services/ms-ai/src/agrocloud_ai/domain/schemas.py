@@ -80,6 +80,14 @@ class InferenceItem(BaseModel):
     error_type: str | None = None
 
 
+class BatchAnalysisItem(BaseModel):
+    index: int
+    status: Literal["completed", "failed"]
+    result: AnalysisResult | None = None
+    error_code: str | None = None
+    retryable: bool = False
+
+
 class InferencePage(BaseModel):
     total: int
     limit: int

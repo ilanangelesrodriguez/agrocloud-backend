@@ -11,7 +11,7 @@ class AiAnalysisClient
 {
     public function __construct(private readonly EvidenceStorage $storage) {}
 
-    public function analyze(EvidenciaInspeccion $photo): array
+    public function analyze(EvidenciaInspeccion $photo, ?string $correlationId = null): array
     {
         $url = rtrim((string) config('agricultural.ai_url'), '/');
         $key = (string) config('agricultural.ai_key');
@@ -19,13 +19,23 @@ class AiAnalysisClient
             && (str_starts_with($url, 'https://') || app()->environment('local', 'testing')), 503, 'Configure AI service.');
         $bytes = $this->storage->read($photo->file_path);
         if (! hash_equals($photo->image_sha256, hash('sha256', $bytes))) {
-            throw new \RuntimeException('Evidence input hash mismatch.');
+            throw new \RuntimeException('Evidence input hash mismatch.', 422);
         }
-        $response = Http::withHeaders(['X-API-Key' => $key])->acceptJson()->withoutRedirecting()->connectTimeout(3)->timeout(105)
+        $request = Http::withHeaders(['X-API-Key' => $key, 'X-Correlation-ID' => $correlationId ?? (string) $photo->id_evidencia])->acceptJson()->withoutRedirecting()->connectTimeout(3)->timeout(105);
+        if (config('agricultural.ai_iam_enabled')) {
+            $token = Http::withHeaders(['Metadata-Flavor' => 'Google'])->withoutRedirecting()->connectTimeout(2)->timeout(5)
+                ->get('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity',
+                    ['audience' => config('agricultural.ai_audience') ?: $url]);
+            if (! $token->successful() || substr_count(trim($token->body()), '.') !== 2) {
+                throw new \RuntimeException('Cloud Run AI identity token unavailable.', 503);
+            }
+            $request = $request->withHeaders(['X-Serverless-Authorization' => 'Bearer '.trim($token->body())]);
+        }
+        $response = $request
             ->attach('file', $bytes, 'evidence.'.pathinfo($photo->file_path, PATHINFO_EXTENSION), ['Content-Type' => $photo->mime])
             ->post($url.'/api/v1/analyses/file');
         if (! $response->successful() || strlen($response->body()) > 8000000 || ! is_array($response->json())) {
-            throw new \RuntimeException('AI response unavailable or incompatible.');
+            throw new \RuntimeException('AI response unavailable or incompatible.', $response->successful() ? 502 : $response->status());
         }
         $data = $response->json();
         $validator = Validator::make($data, [

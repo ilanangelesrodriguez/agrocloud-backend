@@ -16,6 +16,7 @@ use App\Shared\Tenancy\CompanyContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -66,7 +67,7 @@ class EvidenceController extends Controller
         }
         abort_unless(hash_equals($photo->image_sha256, hash('sha256', $bytes)), 503, 'Evidence integrity check failed.');
 
-        return response()->stream(fn () => print($bytes), 200, [
+        return response()->stream(fn () => print ($bytes), 200, [
             'Content-Type' => $photo->mime,
             'Cache-Control' => 'no-store',
             'X-Content-Type-Options' => 'nosniff',
@@ -88,17 +89,110 @@ class EvidenceController extends Controller
     public function analyze(int $evidence): JsonResponse
     {
         $this->mutate($evidence, function (EvidenciaInspeccion $photo, Inspeccion $inspection, Lote $lot): void {
+            $this->requireCompatibleModel($lot);
             abort_if($photo->pertinencia === 'INVALIDA' || $photo->estado_ia === 'COMPLETADO', 422, 'Discarded or already analyzed evidence.');
             $job = DB::table('agricultural_ai_jobs')->where('id_empresa', $photo->id_empresa)->where('id_evidencia', $photo->getKey())->lockForUpdate()->first();
             abort_if($job && in_array($job->status, ['PENDING', 'PROCESSING'], true), 409, 'Analysis already queued or running.');
-            DB::table('agricultural_ai_jobs')->updateOrInsert(['id_empresa' => $photo->id_empresa, 'id_evidencia' => $photo->getKey()],
-                ['actor_id' => app(CompanyContext::class)->actor(), 'status' => 'PENDING', 'attempts' => 0, 'next_attempt_at' => now(),
-                    'lock_token' => null, 'locked_until' => null, 'created_at' => $job?->created_at ?? now(), 'updated_at' => now()]);
-            $photo->update(['estado_ia' => 'EN_COLA', 'error_ia' => null, 'review_fingerprint' => null, 'reviewed_at' => null]);
-            Traceability::record($photo, $lot->getKey(), 'ANALISIS_SOLICITADO', []);
+            $this->queuePhoto($photo, $lot);
         });
 
         return response()->json(['queued' => true], 202);
+    }
+
+    private function requireCompatibleModel(Lote $lot): void
+    {
+        $products = array_map(fn (string $value): string => Str::lower($value), config('agricultural.ai_supported_products', []));
+        abort_unless(in_array(Str::lower(trim($lot->producto)), $products, true), 422,
+            'No hay un modelo IA compatible con este producto. Continúa con la revisión manual justificada.');
+    }
+
+    public function createBatch(Request $request, int $inspection, InspectionWorkflow $workflow): JsonResponse
+    {
+        $data = $request->validate(['evidenceIds' => ['required', 'array', 'min:1', 'max:100'],
+            'evidenceIds.*' => ['required', 'integer', 'min:1', 'distinct'], 'idempotencyKey' => ['required', 'uuid']]);
+        $ids = array_map('intval', $data['evidenceIds']);
+        sort($ids);
+        $hash = hash('sha256', json_encode($ids, JSON_THROW_ON_ERROR));
+        $batch = $workflow->mutate($inspection, function (Inspeccion $record, Lote $lot) use ($data, $ids, $hash): string {
+            $company = app(CompanyContext::class)->company();
+            $existing = DB::table('agricultural_ai_batches')->where('id_empresa', $company)->where('id_inspeccion', $record->getKey())
+                ->where('idempotency_key', $data['idempotencyKey'])->first();
+            if ($existing) {
+                abort_unless(hash_equals($existing->input_hash, $hash), 409, 'Idempotency key used with different evidence.');
+
+                return $existing->id;
+            }
+            $this->requireCompatibleModel($lot);
+            $photos = $record->evidencias->whereIn('id_evidencia', $ids);
+            abort_unless($photos->count() === count($ids), 422, 'Every evidence must belong to this inspection.');
+            foreach ($photos as $photo) {
+                abort_if($photo->pertinencia === 'INVALIDA' || $photo->estado_ia === 'COMPLETADO', 422, 'Discarded or already analyzed evidence.');
+                $this->queuePhoto($photo, $lot);
+            }
+            $batch = (string) Str::uuid();
+            DB::table('agricultural_ai_batches')->insert(['id' => $batch, 'id_empresa' => $company, 'id_inspeccion' => $record->getKey(),
+                'idempotency_key' => $data['idempotencyKey'], 'input_hash' => $hash, 'evidence_ids' => json_encode($ids, JSON_THROW_ON_ERROR),
+                'created_at' => now(), 'updated_at' => now()]);
+
+            return $batch;
+        });
+
+        return response()->json($this->batchProgress($inspection, $batch), 202);
+    }
+
+    private function queuePhoto(EvidenciaInspeccion $photo, Lote $lot): void
+    {
+        $job = DB::table('agricultural_ai_jobs')->where('id_empresa', $photo->id_empresa)->where('id_evidencia', $photo->getKey())->lockForUpdate()->first();
+        if ($job && in_array($job->status, ['PENDING', 'PROCESSING'], true)) {
+            return;
+        }
+        DB::table('agricultural_ai_jobs')->updateOrInsert(['id_empresa' => $photo->id_empresa, 'id_evidencia' => $photo->getKey()],
+            ['actor_id' => app(CompanyContext::class)->actor(), 'status' => 'PENDING', 'attempts' => 0, 'next_attempt_at' => now(),
+                'stage' => 'QUEUED', 'last_error_code' => null, 'last_error_at' => null, 'started_at' => null, 'completed_at' => null,
+                'lock_token' => null, 'locked_until' => null, 'created_at' => $job?->created_at ?? now(), 'updated_at' => now()]);
+        $photo->update(['estado_ia' => 'EN_COLA', 'error_ia' => null, 'review_fingerprint' => null, 'reviewed_at' => null]);
+        Traceability::record($photo, $lot->getKey(), 'ANALISIS_SOLICITADO', []);
+    }
+
+    public function batchProgress(int $inspection, string $batch): array
+    {
+        Inspeccion::findOrFail($inspection);
+        $record = DB::table('agricultural_ai_batches')->where('id_empresa', app(CompanyContext::class)->company())
+            ->where('id_inspeccion', $inspection)->where('id', $batch)->first();
+        abort_unless($record, 404);
+        $ids = json_decode($record->evidence_ids, true, flags: JSON_THROW_ON_ERROR);
+        $jobs = DB::table('agricultural_ai_jobs')->where('id_empresa', $record->id_empresa)->whereIn('id_evidencia', $ids)->get();
+        $completed = $jobs->where('status', 'COMPLETED')->count();
+        $failed = $jobs->where('status', 'ERROR')->count();
+        $cancelled = $jobs->where('status', 'CANCELLED')->count();
+        $processing = $jobs->where('status', 'PROCESSING')->count();
+        $pending = count($ids) - $completed - $failed - $cancelled - $processing;
+
+        return ['batchId' => $batch, 'status' => $pending + $processing > 0 ? 'PROCESSING' : ($failed + $cancelled > 0 ? 'FAILED' : 'COMPLETED'),
+            'total' => count($ids), 'completed' => $completed, 'processing' => $processing, 'pending' => $pending, 'failed' => $failed, 'cancelled' => $cancelled,
+            'stalled' => $jobs->contains(fn ($job) => in_array($job->status, ['PENDING', 'PROCESSING'], true) && now()->diffInSeconds($job->updated_at, true) > 300),
+            'items' => $jobs->map(fn ($job) => ['evidenceId' => $job->id_evidencia, 'status' => $job->status,
+                'stage' => $job->stage, 'attempts' => $job->attempts, 'errorCode' => $job->last_error_code,
+                'nextAttemptAt' => $job->next_attempt_at, 'updatedAt' => $job->updated_at])->all()];
+    }
+
+    public function retryBatch(int $inspection, string $batch, InspectionWorkflow $workflow): JsonResponse
+    {
+        $progress = $this->batchProgress($inspection, $batch);
+        $workflow->mutate($inspection, function (Inspeccion $record, Lote $lot) use ($progress): void {
+            $this->requireCompatibleModel($lot);
+            foreach ($progress['items'] as $item) {
+                if ($item['status'] !== 'ERROR') {
+                    continue;
+                }
+                $photo = $record->evidencias->firstWhere('id_evidencia', (int) $item['evidenceId']);
+                if ($photo && $photo->pertinencia !== 'INVALIDA' && $photo->estado_ia !== 'COMPLETADO') {
+                    $this->queuePhoto($photo, $lot);
+                }
+            }
+        });
+
+        return response()->json($this->batchProgress($inspection, $batch), 202);
     }
 
     public function cancelAnalysis(Request $request, int $evidence): AgriculturalResource
@@ -107,7 +201,8 @@ class EvidenceController extends Controller
         $photo = $this->mutate($evidence, function (EvidenciaInspeccion $photo, Inspeccion $inspection, Lote $lot) use ($data): EvidenciaInspeccion {
             $job = DB::table('agricultural_ai_jobs')->where('id_empresa', $photo->id_empresa)->where('id_evidencia', $photo->getKey())->lockForUpdate()->first();
             abort_unless($job && in_array($job->status, ['PENDING', 'ERROR'], true), 409, 'A running analysis cannot be cancelled.');
-            DB::table('agricultural_ai_jobs')->where('id', $job->id)->update(['status' => 'CANCELLED', 'lock_token' => null, 'locked_until' => null, 'updated_at' => now()]);
+            DB::table('agricultural_ai_jobs')->where('id', $job->id)->update(['status' => 'CANCELLED', 'stage' => 'CANCELLED', 'completed_at' => now(),
+                'lock_token' => null, 'locked_until' => null, 'updated_at' => now()]);
             $photo->update(['estado_ia' => 'ERROR', 'error_ia' => 'Analysis cancelled; manual review requires justification.']);
             Traceability::record($photo, $lot->getKey(), 'ANALISIS_CANCELADO', $data);
 
