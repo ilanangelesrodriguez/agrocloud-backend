@@ -142,18 +142,43 @@ export class EventsWorker {
           [event.source, event.event_id, token],
         );
       });
-    } catch {
-      await this.database.query(
-        `UPDATE processed_events SET status=$4,next_attempt_at=now()+($5::int*interval '1 second'),lock_token=NULL,locked_until=NULL,last_error_code='PROCESSING_UNAVAILABLE'
-        WHERE source=$1 AND event_id=$2 AND lock_token=$3`,
-        [
-          event.source,
-          event.event_id,
-          token,
-          event.attempts >= 8 ? 'FAILED' : 'PENDING',
-          Math.min(3600, 15 * 2 ** Math.min(event.attempts, 8)),
-        ],
-      );
+    } catch (error: unknown) {
+      const details = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+      const driver = details.driverError && typeof details.driverError === 'object'
+        ? details.driverError as Record<string, unknown>
+        : {};
+      console.error('Notification event processing failed.', {
+        type: error instanceof Error ? error.name : 'UnknownError',
+        code: typeof driver.code === 'string' ? driver.code.slice(0, 20)
+          : typeof details.code === 'string' ? details.code.slice(0, 20) : 'UNKNOWN',
+        source: event.source,
+      });
+      try {
+        await this.database.query(
+          `UPDATE processed_events SET status=$4,next_attempt_at=now()+($5::int*interval '1 second'),lock_token=NULL,locked_until=NULL,last_error_code='PROCESSING_UNAVAILABLE'
+          WHERE source=$1 AND event_id=$2 AND lock_token=$3`,
+          [
+            event.source,
+            event.event_id,
+            token,
+            event.attempts >= 8 ? 'FAILED' : 'PENDING',
+            Math.min(3600, 15 * 2 ** Math.min(event.attempts, 8)),
+          ],
+        );
+      } catch (recoveryError: unknown) {
+        const recovery = recoveryError && typeof recoveryError === 'object'
+          ? recoveryError as Record<string, unknown>
+          : {};
+        const cause = recovery.driverError && typeof recovery.driverError === 'object'
+          ? recovery.driverError as Record<string, unknown>
+          : {};
+        console.error('Notification event retry update failed.', {
+          type: recoveryError instanceof Error ? recoveryError.name : 'UnknownError',
+          code: typeof cause.code === 'string' ? cause.code.slice(0, 20)
+            : typeof recovery.code === 'string' ? recovery.code.slice(0, 20) : 'UNKNOWN',
+        });
+        throw recoveryError;
+      }
     }
     return true;
   }
