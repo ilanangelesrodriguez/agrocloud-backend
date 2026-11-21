@@ -30,22 +30,16 @@ class RunAgriculturalWorker extends Command
         }
         do {
             $worked = false;
-<<<<<<< HEAD
-            if (! $this->option('events-only')) {
-                try {
-                    $worked = $ai->processOne();
-                } catch (\Throwable) {
-                    $this->error('AI worker failed; the persistent lease will allow recovery.');
-                }
-=======
             try {
                 if (! $this->option('events-only')) {
                     $worked = $ai->processOne();
                 }
             } catch (\Throwable $error) {
-                logger()->error('AI worker iteration failed.', ['exception_type' => $error::class, 'code' => $error->getCode()]);
+                logger()->error('AI worker iteration failed.', [
+                    'exception_type' => $error::class,
+                    'code' => $error->getCode(),
+                ]);
                 $this->error('AI worker failed; the persistent lease will allow recovery.');
->>>>>>> b3f87e8ca699e48281f2e2816b9a3a57605bee91
             }
             try {
                 if (! $this->option('ai-only')) {
