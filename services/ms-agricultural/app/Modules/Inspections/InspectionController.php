@@ -9,9 +9,11 @@ use App\Models\Lote;
 use App\Models\Muestreo;
 use App\Shared\Events\EventOutbox;
 use App\Shared\Events\Traceability;
+use App\Shared\Tenancy\CompanyContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class InspectionController extends Controller
@@ -25,7 +27,13 @@ class InspectionController extends Controller
 
     public function show(int $inspection): AgriculturalResource
     {
-        return new AgriculturalResource(Inspeccion::with(['muestreo.lote', 'evidencias.validaciones', 'hallazgos', 'dictamenes'])->findOrFail($inspection));
+        $record = Inspeccion::with(['muestreo.lote', 'evidencias.validaciones', 'hallazgos', 'dictamenes'])->findOrFail($inspection);
+        $record->setAttribute('analysis_batch_id', DB::table('agricultural_ai_batches')->where('id_empresa', app(CompanyContext::class)->company())
+            ->where('id_inspeccion', $inspection)->orderByDesc('created_at')->orderByDesc('id')->value('id'));
+        $products = array_map(fn (string $value): string => Str::lower($value), config('agricultural.ai_supported_products', []));
+        $record->setAttribute('ai_supported', in_array(Str::lower(trim($record->muestreo->lote->producto)), $products, true));
+
+        return new AgriculturalResource($record);
     }
 
     public function store(Request $request, int $sampling): AgriculturalResource

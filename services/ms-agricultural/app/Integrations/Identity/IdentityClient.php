@@ -20,32 +20,31 @@ class IdentityClient
             $request = Http::withHeaders([
                 'X-Service-Key' => $key,
             ])->acceptJson()
-            ->withoutRedirecting()
-            ->connectTimeout(3)
-            ->timeout(105);
+                ->withoutRedirecting()
+                ->connectTimeout(3)
+                ->timeout(105);
 
             if (app()->environment('production')) {
                 $tokenResponse = Http::withHeaders([
                     'Metadata-Flavor' => 'Google',
                 ])->connectTimeout(2)
-                ->timeout(5)
-                ->get(
-                    'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity',
-                    ['audience' => $url]
-                );
+                    ->timeout(5)
+                    ->get(
+                        'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity',
+                        ['audience' => $url]
+                    );
 
                 if (
                     ! $tokenResponse->successful() ||
                     substr_count(trim($tokenResponse->body()), '.') !== 2
                 ) {
                     throw new \RuntimeException(
-                        'Cloud Run AI identity token unavailable.'
+                        'Cloud Run Identity token unavailable.'
                     );
                 }
 
                 $request = $request->withHeaders([
-                    'X-Serverless-Authorization' =>
-                        'Bearer '.trim($tokenResponse->body()),
+                    'X-Serverless-Authorization' => 'Bearer '.trim($tokenResponse->body()),
                 ]);
             }
 

@@ -20,7 +20,8 @@ Route::get('/health', fn (): JsonResponse => response()->json(['status' => 'ok',
 Route::get('/ready', function (): JsonResponse {
     try {
         DB::select('SELECT 1');
-        $schema = Schema::hasTable('agricultural_operations') && Schema::hasTable('agricultural_ai_jobs') && Schema::hasTable('dictamen_calidad');
+        $schema = Schema::hasTable('agricultural_operations') && Schema::hasTable('agricultural_ai_jobs')
+            && Schema::hasTable('agricultural_ai_batches') && Schema::hasColumn('agricultural_ai_jobs', 'stage') && Schema::hasTable('dictamen_calidad');
         $identity = strlen((string) config('agricultural.identity_key')) >= 32 && filter_var(config('agricultural.identity_url'), FILTER_VALIDATE_URL);
         $ready = $schema && $identity;
 
@@ -49,6 +50,9 @@ Route::middleware(['throttle:agricultural-public', 'agricultural.auth', 'throttl
     Route::get('/inspections/{inspection}', [InspectionController::class, 'show'])->whereNumber('inspection')->middleware('agricultural.permission:inspecciones.ver');
     Route::post('/samplings/{sampling}/inspections', [InspectionController::class, 'store'])->whereNumber('sampling')->middleware('agricultural.permission:inspecciones.crear');
     Route::post('/inspections/{inspection}/evidences', [EvidenceController::class, 'store'])->whereNumber('inspection')->middleware('agricultural.permission:inspecciones.capturar');
+    Route::post('/inspections/{inspection}/analyses', [EvidenceController::class, 'createBatch'])->whereNumber('inspection')->middleware('agricultural.permission:inspecciones.analizar');
+    Route::get('/inspections/{inspection}/analyses/{batch}', [EvidenceController::class, 'batchProgress'])->whereNumber('inspection')->whereUuid('batch')->middleware('agricultural.permission:inspecciones.ver');
+    Route::post('/inspections/{inspection}/analyses/{batch}/retry', [EvidenceController::class, 'retryBatch'])->whereNumber('inspection')->whereUuid('batch')->middleware('agricultural.permission:inspecciones.analizar');
     Route::get('/evidences/{evidence}/image', [EvidenceController::class, 'image'])->whereNumber('evidence')->middleware('agricultural.permission:inspecciones.ver');
     Route::post('/evidences/{evidence}/analysis/cancel', [EvidenceController::class, 'cancelAnalysis'])->whereNumber('evidence')->middleware('agricultural.permission:inspecciones.analizar');
     Route::post('/evidences/{evidence}/analyze', [EvidenceController::class, 'analyze'])->whereNumber('evidence')->middleware('agricultural.permission:inspecciones.analizar');
