@@ -18,7 +18,7 @@ class IdentityClient
             && (str_starts_with($url, 'https://') || app()->environment('local', 'testing')), 503, 'Configure Identity service connection.');
         try {
             $request = Http::withHeaders([
-                'X-API-Key' => $key,
+                'X-Service-Key' => $key,
             ])->acceptJson()
             ->withoutRedirecting()
             ->connectTimeout(3)

@@ -24,10 +24,12 @@ class RunAgriculturalWorker extends Command
         }
         do {
             $worked = false;
-            try {
-                $worked = $ai->processOne();
-            } catch (\Throwable) {
-                $this->error('AI worker failed; the persistent lease will allow recovery.');
+            if (! $this->option('events-only')) {
+                try {
+                    $worked = $ai->processOne();
+                } catch (\Throwable) {
+                    $this->error('AI worker failed; the persistent lease will allow recovery.');
+                }
             }
             try {
                 $worked = $events->dispatchOne() || $worked;
