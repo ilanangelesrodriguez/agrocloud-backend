@@ -8,7 +8,9 @@ use Illuminate\Console\Command;
 
 class RunAgriculturalWorker extends Command
 {
-    protected $signature = 'agricultural:work {--once : Process at most one analysis and one event}';
+    protected $signature = 'agricultural:work
+    {--once : Process at most one analysis and one event}
+    {--events-only : Dispatch events without processing AI jobs}';
 
     protected $description = 'Process persisted AI jobs and deliver the transactional outbox';
 
