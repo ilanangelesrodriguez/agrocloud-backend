@@ -6,13 +6,19 @@ export class PaymentAttempt {
 
   @Prop({
     required: true,
-    enum: ['PROCESSING', 'SUCCEEDED', 'DECLINED', 'UNKNOWN'],
+    enum: ['PROCESSING', 'REQUIRES_3DS', 'CANCELLED', 'SUCCEEDED', 'DECLINED', 'UNKNOWN'],
   })
   status!: string;
 
   @Prop() culqiChargeId?: string;
 
   @Prop() errorCode?: string;
+
+  @Prop({ select: false }) tokenHash?: string;
+
+  @Prop({ select: false }) deviceHash?: string;
+
+  @Prop() authenticationExpiresAt?: Date;
 }
 
 export const PaymentAttemptSchema = SchemaFactory.createForClass(PaymentAttempt);

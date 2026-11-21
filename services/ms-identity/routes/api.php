@@ -74,6 +74,8 @@ Route::middleware(['identity.auth', 'throttle:identity-api'])->group(function ()
     Route::get('/subscription/orders/{reference}', [SubscriptionController::class, 'orderStatus'])->middleware('identity.permission:suscripciones.ver');
     Route::post('/subscription/orders/{reference}/reconcile', [SubscriptionController::class, 'reconcileOrder'])->middleware('identity.permission:suscripciones.gestionar');
     Route::post('/subscription/orders/{reference}/charge', [SubscriptionController::class, 'sandboxCharge'])->middleware('identity.permission:suscripciones.gestionar');
+    Route::post('/subscription/orders/{reference}/complete-3ds', [SubscriptionController::class, 'completeAuthentication'])->middleware('identity.permission:suscripciones.gestionar');
+    Route::post('/subscription/orders/{reference}/cancel-authentication', [SubscriptionController::class, 'cancelAuthentication'])->middleware('identity.permission:suscripciones.gestionar');
 });
 Route::prefix('internal')->middleware('throttle:identity-internal')->group(function (): void {
     Route::post('/billing/events', [InternalController::class, 'payment']);

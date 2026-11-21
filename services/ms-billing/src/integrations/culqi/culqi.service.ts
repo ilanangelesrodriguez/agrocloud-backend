@@ -1,6 +1,9 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ChargeSnapshot } from '../../common/utils/charge-verification.js';
+import type { Authentication3DSDto } from '../../modules/payments/dto/create-charge.dto.js';
+
+export type CulqiChargeResult = ChargeSnapshot | { requires3ds: true };
 
 export class CulqiHttpError extends Error {
   constructor(
@@ -60,7 +63,11 @@ export class CulqiService {
     email: string;
     reference: string;
     description: string;
-  }): Promise<ChargeSnapshot> {
+    deviceFingerprintId: string;
+    firstName?: string;
+    lastName?: string;
+    authentication3DS?: Authentication3DSDto;
+  }): Promise<CulqiChargeResult> {
     const result = await this.request('/charges', 'POST', {
       amount: data.amountCents,
       currency_code: 'PEN',
@@ -68,7 +75,16 @@ export class CulqiService {
       source_id: data.tokenId,
       description: data.description,
       metadata: { external_reference: data.reference },
+      antifraud_details: {
+        device_finger_print_id: data.deviceFingerprintId,
+        ...(data.firstName ? { first_name: data.firstName } : {}),
+        ...(data.lastName ? { last_name: data.lastName } : {}),
+      },
+      ...(data.authentication3DS ? { authentication_3DS: data.authentication3DS } : {}),
     });
+    const outcome = result.outcome as Record<string, unknown> | undefined;
+    if ((result.action_code === 'REVIEW' || outcome?.action_code === 'REVIEW') && !result.id)
+      return { requires3ds: true };
     return result as unknown as ChargeSnapshot;
   }
 

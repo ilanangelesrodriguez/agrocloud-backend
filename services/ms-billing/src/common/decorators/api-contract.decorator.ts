@@ -43,7 +43,7 @@ export const orderSchema: SchemaObject = {
 
     status: {
       type: 'string',
-      enum: ['PENDING', 'PROCESSING', 'PAID', 'UNKNOWN', 'REFUNDED'],
+      enum: ['PENDING', 'PROCESSING', 'REQUIRES_3DS', 'PAID', 'UNKNOWN', 'REFUNDED'],
     },
 
     culqiChargeId: text('chr_test_example'),
@@ -61,17 +61,19 @@ export const paymentSchema: SchemaObject = {
     orderReference: text('AGRO-ORDER-000125'),
     status: {
       type: 'string',
-      enum: ['PENDING', 'PROCESSING', 'PAID', 'UNKNOWN', 'REFUNDED'],
+      enum: ['PENDING', 'PROCESSING', 'REQUIRES_3DS', 'PAID', 'UNKNOWN', 'REFUNDED'],
     },
 
     chargeId: { ...text('chr_test_example'), nullable: true },
     lastAttempt: {
       type: 'string',
       nullable: true,
-      enum: ['PROCESSING', 'SUCCEEDED', 'DECLINED', 'UNKNOWN'],
+      enum: ['PROCESSING', 'REQUIRES_3DS', 'CANCELLED', 'SUCCEEDED', 'DECLINED', 'UNKNOWN'],
     },
 
     detail: { type: 'string' },
+    attemptId: { type: 'string' },
+    authenticationExpiresAt: { type: 'string', format: 'date-time' },
     notification: { type: 'string', enum: ['PENDING_RETRY'] },
   },
 };

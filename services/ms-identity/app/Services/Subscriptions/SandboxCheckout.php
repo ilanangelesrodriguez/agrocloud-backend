@@ -4,6 +4,7 @@ namespace App\Services\Subscriptions;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * Company-scoped, sandbox-only bridge to private ms-billing.
@@ -65,7 +66,7 @@ final class SandboxCheckout
             [$url, $key] = $this->billingConnection();
             $response = app(BillingHttpClient::class)->request($url, $key)->timeout(5)
                 ->get($url.'/api/v1/payments/'.$order->reference);
-        } catch (ConnectionException|\Symfony\Component\HttpKernel\Exception\HttpException) {
+        } catch (ConnectionException|HttpException) {
             return 'UNAVAILABLE';
         }
 
@@ -78,9 +79,11 @@ final class SandboxCheckout
         return match ($payment['status'] ?? null) {
             'PAID' => 'AWAITING_CONFIRMATION',
             'PROCESSING' => 'PROCESSING',
+            'REQUIRES_3DS' => 'REQUIRES_3DS',
             'UNKNOWN' => 'RECONCILIATION_REQUIRED',
             'PENDING' => match ($payment['lastAttempt']) {
                 null => 'READY',
+                'CANCELLED' => 'READY',
                 'DECLINED' => 'DECLINED',
                 default => 'RECONCILIATION_REQUIRED',
             },
@@ -108,7 +111,7 @@ final class SandboxCheckout
         return $this->status($company, $reference);
     }
 
-    public function charge(int $company, string $reference, string $tokenId): array
+    public function charge(int $company, string $reference, string $tokenId, array $authentication = [], bool $complete = false): array
     {
         abort_unless(config('identity.billing.sandbox_checkout_enabled') === true, 403,
             'El cobro de sandbox no está habilitado.');
@@ -122,10 +125,14 @@ final class SandboxCheckout
         [$url, $key] = $this->billingConnection();
 
         try {
-            $response = app(BillingHttpClient::class)->request($url, $key)->timeout(25)
-                ->post($url.'/api/v1/payments/charges', [
+            $response = app(BillingHttpClient::class)->request($url, $key)->timeout(40)
+                ->post($url.'/api/v1/payments/charges'.($complete ? '/complete-3ds' : ''), [
                     'externalReference' => $order->reference,
                     'tokenId' => $tokenId,
+                    'deviceFingerprintId' => $authentication['device_fingerprint_id'],
+                    'firstName' => $authentication['first_name'] ?? '',
+                    'lastName' => $authentication['last_name'] ?? '',
+                    ...($complete ? ['attemptId' => $authentication['attempt_id'], 'authentication3DS' => $authentication['authentication_3ds']] : []),
                 ]);
         } catch (ConnectionException) {
             abort(503, 'No se pudo consultar Billing; revisa el estado antes de reintentar.');
@@ -140,10 +147,39 @@ final class SandboxCheckout
         abort_unless($response->successful(), 502,
             'No se confirmó el resultado del cargo. Comprueba el estado antes de reintentar.');
 
+        $payment = $response->json('data');
+        abort_unless(is_array($payment) && ($payment['orderReference'] ?? null) === $order->reference, 502, 'Respuesta de pago no verificable.');
+        if (($payment['status'] ?? null) === 'REQUIRES_3DS') {
+            abort_unless(is_string($payment['attemptId'] ?? null) && preg_match('/^[a-f0-9]{24}$/D', $payment['attemptId'])
+                && is_string($payment['authenticationExpiresAt'] ?? null), 502, 'Respuesta de autenticación no verificable.');
+
+            return ['reference' => $order->reference, 'status' => 'REQUIRES_3DS', 'attempt_id' => $payment['attemptId'],
+                'authentication_expires_at' => $payment['authenticationExpiresAt'],
+                'message' => 'Tu banco requiere autenticación 3DS para continuar con este pago.'];
+        }
+        abort_unless(($payment['status'] ?? null) === 'PAID', 502, 'No se confirmó el resultado del cargo.');
+
         return [
             'reference' => $order->reference,
             'status' => 'PENDING',
             'message' => 'Billing recibió el pago; esperando confirmación firmada en Identity.',
         ];
+    }
+
+    public function cancelAuthentication(int $company, string $reference): array
+    {
+        abort_unless(config('identity.billing.sandbox_checkout_enabled') === true, 403);
+        $order = $this->ownedOrder($company, $reference);
+        abort_unless($order->status === 'PENDING', 409);
+        [$url, $key] = $this->billingConnection();
+        try {
+            $response = app(BillingHttpClient::class)->request($url, $key)->timeout(15)
+                ->post($url.'/api/v1/payments/'.$order->reference.'/cancel-authentication');
+        } catch (ConnectionException) {
+            abort(503, 'No se pudo cancelar la autenticación. Consulta el estado antes de continuar.');
+        }
+        abort_unless($response->successful(), 409, 'La autenticación ya no está pendiente. Consulta el pago antes de continuar.');
+
+        return $this->status($company, $reference);
     }
 }

@@ -5,7 +5,8 @@ export type OrderDocument = HydratedDocument<BillingOrder>;
 
 export type OrderKind = 'PLAN' | 'RENEWAL' | 'USER_ADDON' | 'AI_ADDON' | 'LOT_ADDON';
 
-export type OrderStatus = 'PENDING' | 'PROCESSING' | 'PAID' | 'UNKNOWN' | 'REFUNDED';
+export type OrderStatus =
+  'PENDING' | 'PROCESSING' | 'REQUIRES_3DS' | 'PAID' | 'UNKNOWN' | 'REFUNDED';
 
 @Schema({ collection: 'payment_orders', timestamps: true, versionKey: false })
 export class BillingOrder {
@@ -26,7 +27,7 @@ export class BillingOrder {
 
   @Prop({
     required: true,
-    enum: ['PENDING', 'PROCESSING', 'PAID', 'UNKNOWN', 'REFUNDED'],
+    enum: ['PENDING', 'PROCESSING', 'REQUIRES_3DS', 'PAID', 'UNKNOWN', 'REFUNDED'],
     default: 'PENDING',
     index: true,
   })
@@ -35,6 +36,8 @@ export class BillingOrder {
   @Prop() culqiChargeId?: string;
 
   @Prop() culqiOrderId?: string;
+
+  @Prop() activeAttemptId?: string;
 
   @Prop() paidAt?: Date;
 }

@@ -10,7 +10,7 @@ import { ApiSecurity, ApiTags } from '@nestjs/swagger';
 
 import { ServiceKeyGuard } from '../../common/auth/service-key.guard.js';
 
-import { CreateChargeDto } from './dto/create-charge.dto.js';
+import { CompleteChargeDto, CreateChargeDto } from './dto/create-charge.dto.js';
 
 import { PaymentsService } from './payments.service.js';
 
@@ -30,6 +30,30 @@ export class PaymentsController {
   @Post('charges')
   charge(@Body() dto: CreateChargeDto) {
     return this.payments.charge(dto);
+  }
+
+  @ApiContract(
+    'Completar autenticación 3DS',
+    'Continúa el mismo intento con el token y dispositivo originales. No repite cargos indeterminados.',
+    paymentSchema,
+    201,
+  )
+  @Post('charges/complete-3ds')
+  completeAuthentication(@Body() dto: CompleteChargeDto) {
+    return this.payments.completeAuthentication(dto);
+  }
+
+  @referenceParameter()
+  @ApiContract(
+    'Cancelar autenticación pendiente',
+    'Solo libera una orden REQUIRES_3DS que aún no tiene cargo confirmado.',
+    paymentSchema,
+    200,
+  )
+  @HttpCode(200)
+  @Post(':reference/cancel-authentication')
+  cancelAuthentication(@Param('reference') reference: string) {
+    return this.payments.cancelAuthentication(reference);
   }
 
   @referenceParameter()
