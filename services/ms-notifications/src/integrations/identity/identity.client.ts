@@ -19,7 +19,7 @@ export interface Recipient {
 }
 @Injectable()
 export class IdentityClient {
-  constructor(private readonly settings: Settings) {}
+  constructor(private readonly settings: Settings) { }
   private async request(
     path: string,
     bearer?: string,
@@ -32,7 +32,7 @@ export class IdentityClient {
         ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
       };
 
-      if (process.env.K_SERVICE) {
+      if (process.env.K_SERVICE || process.env.CLOUD_RUN_WORKER_POOL) {
         const metadataUrl = new URL(
           'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity',
         );

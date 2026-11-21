@@ -17,24 +17,35 @@ class IdentityClient
         abort_unless(strlen($key) >= 32 && filter_var($url, FILTER_VALIDATE_URL)
             && (str_starts_with($url, 'https://') || app()->environment('local', 'testing')), 503, 'Configure Identity service connection.');
         try {
-            $request = Http::withHeaders(['X-Service-Key' => $key])->acceptJson()->withoutRedirecting()->connectTimeout(2)->timeout(8);
+            $request = Http::withHeaders([
+                'X-API-Key' => $key,
+            ])->acceptJson()
+            ->withoutRedirecting()
+            ->connectTimeout(3)
+            ->timeout(105);
+
             if (app()->environment('production')) {
                 $tokenResponse = Http::withHeaders([
                     'Metadata-Flavor' => 'Google',
-                ])->connectTimeout(2)->timeout(5)->get(
+                ])->connectTimeout(2)
+                ->timeout(5)
+                ->get(
                     'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity',
                     ['audience' => $url]
                 );
 
-                abort_unless(
-                    $tokenResponse->successful()
-                    && substr_count(trim($tokenResponse->body()), '.') === 2,
-                    503,
-                    'Cloud Run identity token unavailable.'
-                );
+                if (
+                    ! $tokenResponse->successful() ||
+                    substr_count(trim($tokenResponse->body()), '.') !== 2
+                ) {
+                    throw new \RuntimeException(
+                        'Cloud Run AI identity token unavailable.'
+                    );
+                }
 
                 $request = $request->withHeaders([
-                    'X-Serverless-Authorization' => 'Bearer '.trim($tokenResponse->body()),
+                    'X-Serverless-Authorization' =>
+                        'Bearer '.trim($tokenResponse->body()),
                 ]);
             }
 
