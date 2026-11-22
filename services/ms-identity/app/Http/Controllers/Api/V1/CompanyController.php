@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CompanyRequest;
 use App\Http\Resources\CompanyResource;
 use App\Models\Empresa;
+use App\Services\Access\CompanyOnboarding;
 use App\Services\SunatRucService;
+use App\Support\UbigeoCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
@@ -30,8 +32,17 @@ class CompanyController extends Controller
     public function store(CompanyRequest $request, SunatRucService $sunat): CompanyResource
     {
         abort_unless($request->user()->isSuperAdmin(), 403);
-        $data = app(\App\Support\UbigeoCatalog::class)->normalize($request->validated());
+        $data = app(UbigeoCatalog::class)->normalize($request->validated());
         $data['sunat_verificacion'] = $sunat->verificar($data['ruc'], $data['razon_social']);
+
+        $administrator = $data['administrator'] ?? null;
+        unset($data['administrator']);
+        if ($administrator) {
+            abort_if(($data['estado'] ?? true) === false, 422, 'An assisted onboarding requires an active company.');
+            $provisioned = app(CompanyOnboarding::class)->provision($data, $administrator, $request->user());
+
+            return new CompanyResource($provisioned['company']);
+        }
 
         return new CompanyResource(Empresa::create($data));
     }
@@ -46,7 +57,7 @@ class CompanyController extends Controller
         $geoKeys = ['departamento', 'provincia', 'distrito', 'ubigeo'];
         if (count(array_intersect($geoKeys, array_keys($data))) > 0) {
             $existing = $record->only($geoKeys);
-            $data = array_merge($data, app(\App\Support\UbigeoCatalog::class)->normalize(array_replace($existing, array_intersect_key($data, array_flip($geoKeys)))));
+            $data = array_merge($data, app(UbigeoCatalog::class)->normalize(array_replace($existing, array_intersect_key($data, array_flip($geoKeys)))));
         }
         if (isset($data['ruc']) || isset($data['razon_social'])) {
             $data['sunat_verificacion'] = $sunat->verificar($data['ruc'] ?? $record->ruc, $data['razon_social'] ?? $record->razon_social);

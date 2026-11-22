@@ -13,7 +13,13 @@ class BillingOfferController
     {
         abort_unless($request->user()->isSuperAdmin(), 403);
 
-        return response()->json(['data' => array_values($catalog->latest())]);
+        $published = $catalog->published();
+        $records = array_map(fn (array $record): array => [
+            ...$record, 'published_version' => $published[$record['key']]['version'] ?? null,
+            'has_unpublished_changes' => $record['status'] === 'DRAFT',
+        ], $catalog->latest());
+
+        return response()->json(['data' => array_values($records)]);
     }
 
     public function show(Request $request, string $offer, OfferCatalog $catalog): JsonResponse
@@ -22,7 +28,15 @@ class BillingOfferController
         $record = $catalog->find($offer);
         abort_unless($record, 404);
 
-        return response()->json(['data' => $record]);
+        return response()->json(['data' => $record, 'published' => $catalog->published()[$offer] ?? null]);
+    }
+
+    public function history(Request $request, string $offer, OfferCatalog $catalog): JsonResponse
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403);
+        abort_unless($catalog->find($offer), 404);
+
+        return response()->json(['data' => $catalog->history($offer), 'published' => $catalog->published()[$offer] ?? null]);
     }
 
     public function store(Request $request, OfferCatalog $catalog): JsonResponse

@@ -130,9 +130,9 @@ class AuthController extends Controller
     {
         $data = $request->validate(['user_id' => ['required', 'integer'], 'token' => ['required', 'string', 'max:128'],
             'password' => ['required', 'confirmed', 'max:255', PasswordRule::min(12)->mixedCase()->numbers()]]);
-        $invitations->activate($data['user_id'], $data['token'], $data['password']);
+        $onboarding = $invitations->activate($data['user_id'], $data['token'], $data['password']);
 
-        return response()->json(['message' => 'Account activated; sign in.']);
+        return response()->json(['message' => 'Account activated; sign in.', 'onboarding' => $onboarding]);
     }
 
     public function requestEmailChange(Request $request, EmailChangeService $changes): JsonResponse

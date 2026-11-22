@@ -25,6 +25,7 @@ class AccessRequest extends FormRequest
         abort_if(trim($privacyVersion) === '', 503, 'La versión del aviso de privacidad no está configurada.');
 
         return [
+            'selected_offer_key' => ['sometimes', 'nullable', 'string', 'regex:/^[A-Za-z0-9_-]{1,60}$/D'],
             'privacy_accepted' => ['required', 'accepted'],
             'privacy_version' => ['required', 'string', 'max:80', Rule::in([$privacyVersion])],
             'ruc' => ['required', 'string', 'regex:/^[0-9]{11}$/D', Rule::unique('solicitudes_acceso', 'ruc')->whereNot('estado', 'RECHAZADA'), 'unique:empresa,ruc'],

@@ -2,14 +2,10 @@
 
 namespace App\Services\Access;
 
-use App\Models\Empresa;
-use App\Models\Rol;
 use App\Models\SolicitudAcceso;
 use App\Models\User;
-use App\Services\Subscriptions\SubscriptionService;
 use App\Services\SunatRucService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AccessService
@@ -48,20 +44,17 @@ class AccessService
             abort_if(in_array($entry->estado, ['APROBADA', 'RECHAZADA'], true), 409, 'Request already decided.');
             abort_if($initial->ruc !== $entry->ruc || $initial->razon_social !== $entry->razon_social, 409, 'Request changed during verification.');
             if ($decision === 'APROBADA') {
-                if (Empresa::where('ruc', $entry->ruc)->exists() || User::where('correo', $entry->correo)->orWhere('pending_email', $entry->correo)->exists()) {
-                    throw ValidationException::withMessages(['request' => 'La empresa o el correo ya estan registrados; no se reasignan cuentas.']);
-                }
-                $role = Rol::where('codigo', 'ADMIN')->where('estado', true)->firstOrFail();
-                $company = Empresa::create([...$entry->only(['ruc', 'razon_social', 'nombre_comercial', 'tipo_empresa', 'telefono', 'correo']), 'sunat_verificacion' => $verification]);
-                app(SubscriptionService::class)->activateFreePlan($company->getKey());
-                $user = User::create([...$entry->only(['nombre', 'apellido', 'correo', 'telefono']), 'id_empresa' => $company->getKey(),
-                    'id_rol' => $role->getKey(), 'password_hash' => Str::random(64), 'estado' => false]);
-                $user->forceFill(['invitation_hash' => hash('sha256', Str::random(64))])->save();
+                $provisioned = app(CompanyOnboarding::class)->provision(
+                    [...$entry->only(['ruc', 'razon_social', 'nombre_comercial', 'tipo_empresa', 'telefono', 'correo']), 'sunat_verificacion' => $verification],
+                    $entry->only(['nombre', 'apellido', 'correo', 'telefono']),
+                    $actor,
+                );
+                $company = $provisioned['company'];
+                $user = $provisioned['administrator'];
                 $entry->id_empresa = $company->getKey();
                 $entry->id_usuario = $user->getKey();
                 $entry->sunat_verificacion = $verification;
                 AccountSecurity::record($user, 'ACCESS_APPROVED', actor: $actor);
-                app(InvitationService::class)->send($user);
             }
             if ($decision === 'RECHAZADA') {
                 AccountSecurity::mailTo($entry->correo, 'ACCESS_REJECTED', 'Resultado de tu solicitud AgroCloud', 'Tu solicitud fue rechazada. Motivo: '.$reason.'. Puedes corregir tus datos y presentar una nueva solicitud desde la página de acceso.');

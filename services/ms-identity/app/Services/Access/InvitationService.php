@@ -27,20 +27,23 @@ class InvitationService
         }, 3);
     }
 
-    public function activate(int $id, string $token, string $password): void
+    public function activate(int $id, string $token, string $password): array
     {
-        DB::transaction(function () use ($id, $token, $password): void {
+        return DB::transaction(function () use ($id, $token, $password): array {
             $user = User::with(['rol', 'empresa'])->lockForUpdate()->find($id);
             abort_unless($user && $user->invitation_hash && $user->invitation_expires_at?->isFuture()
                 && $user->rol?->estado && $user->empresa?->estado
                 && hash_equals($user->invitation_hash, hash('sha256', $token)), 410, 'Invitation expired or unavailable.');
             $user->forceFill(['password_hash' => $password, 'invitation_hash' => null, 'invitation_expires_at' => null,
                 'email_verified_at' => now(), 'estado' => true])->save();
+            app(CompanyOnboarding::class)->activate($user);
             app(SessionService::class)->revokeAll($user);
             AccountSecurity::record($user, 'ACCOUNT_ACTIVATED');
             if (DB::table('solicitudes_acceso')->where('id_usuario', $user->getKey())->where('id_empresa', $user->id_empresa)->where('estado', 'APROBADA')->exists()) {
                 NotificationOutbox::enqueue((int) $user->id_empresa, [(int) $user->getKey()], 'COMPANY_APPROVED', [], 'approved:'.$user->getKey());
             }
+
+            return app(CompanyOnboarding::class)->nextStep($user);
         }, 3);
     }
 }

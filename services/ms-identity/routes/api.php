@@ -7,8 +7,8 @@ use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyMediaController;
 use App\Http\Controllers\Api\V1\InternalController;
 use App\Http\Controllers\Api\V1\PublicOnboardingController;
-use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\SelfProfileController;
+use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -74,6 +74,7 @@ Route::middleware(['identity.auth', 'throttle:identity-api'])->group(function ()
     Route::post('/access-requests/{accessRequest}/decision', [AccessRequestController::class, 'decide'])->whereNumber('accessRequest');
     Route::get('/billing-offers', [BillingOfferController::class, 'index']);
     Route::post('/billing-offers', [BillingOfferController::class, 'store']);
+    Route::get('/billing-offers/{offer}/versions', [BillingOfferController::class, 'history'])->where('offer', '[A-Za-z0-9_-]{1,60}');
     Route::get('/billing-offers/{offer}', [BillingOfferController::class, 'show'])->where('offer', '[A-Za-z0-9_-]{1,60}');
     Route::patch('/billing-offers/{offer}', [BillingOfferController::class, 'update'])->where('offer', '[A-Za-z0-9_-]{1,60}');
     Route::get('/subscription/offers', [SubscriptionController::class, 'offers'])->middleware('identity.permission:suscripciones.ver');

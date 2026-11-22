@@ -20,9 +20,9 @@ class SubscriptionService
         $offers = config('identity.billing.offers', []);
         foreach ($this->catalog->latest() as $key => $record) {
             unset($offers[$key]);
-            if ($record['status'] === 'PUBLISHED') {
-                $offers[$key] = [...$record['terms'], 'version' => $record['version']];
-            }
+        }
+        foreach ($this->catalog->published() as $key => $record) {
+            $offers[$key] = [...$record['terms'], 'version' => $record['version']];
         }
 
         return $offers;
@@ -116,7 +116,7 @@ class SubscriptionService
                 'key' => $key, 'name' => $offer['name'] ?? $offer['plan'], 'currency' => 'PEN',
                 'amount_cents' => $offer['amount_cents'], 'duration_days' => $offer['duration_days'],
                 'limits' => array_intersect_key($offer['limits'], array_flip(['usuarios', 'lotes', 'analisis_ia'])),
-                'available' => true,
+                'available' => true, 'version' => $offer['version'] ?? null,
                 ...array_intersect_key($offer, array_flip(['description', 'valid_from', 'valid_until'])),
             ];
         }

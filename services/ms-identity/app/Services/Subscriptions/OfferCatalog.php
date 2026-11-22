@@ -2,8 +2,8 @@
 
 namespace App\Services\Subscriptions;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class OfferCatalog
@@ -16,6 +16,21 @@ class OfferCatalog
 
         return DB::table(self::TABLE)->whereIn('id', $latest)->orderBy('offer_key')->get()
             ->mapWithKeys(fn (object $row): array => [$row->offer_key => $this->serialize($row)])->all();
+    }
+
+    public function published(): array
+    {
+        $latest = DB::table(self::TABLE)->whereIn('status', ['PUBLISHED', 'ARCHIVED'])
+            ->selectRaw('MAX(id) as id')->groupBy('offer_key');
+
+        return DB::table(self::TABLE)->whereIn('id', $latest)->where('status', 'PUBLISHED')->get()
+            ->mapWithKeys(fn (object $row): array => [$row->offer_key => $this->serialize($row)])->all();
+    }
+
+    public function history(string $key): array
+    {
+        return DB::table(self::TABLE)->where('offer_key', $key)->orderByDesc('version')->get()
+            ->map(fn (object $row): array => $this->serialize($row))->all();
     }
 
     public function find(string $key): ?array
@@ -37,6 +52,11 @@ class OfferCatalog
                 abort_if($current && ($current['status'] === 'ARCHIVED' ||
                     $current['terms']['kind'] !== $terms['kind'] ||
                     ($current['terms']['plan'] ?? null) !== ($terms['plan'] ?? null)), 422, 'Archived offers and commercial plan identifiers cannot be changed.');
+
+                if ($status === 'PUBLISHED' && (! $current || $current['status'] !== 'DRAFT' || $current['terms'] != $terms)) {
+                    $status = 'DRAFT';
+                }
+                abort_if($status === 'ARCHIVED' && (! $current || $current['terms'] != $terms), 422, 'Archive the current version without changing its terms.');
 
                 return DB::table(self::TABLE)->insertGetId([
                     'offer_key' => $key, 'version' => $expected + 1,

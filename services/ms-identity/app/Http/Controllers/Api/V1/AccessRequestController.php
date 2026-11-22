@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AccessRequest;
 use App\Models\SolicitudAcceso;
 use App\Services\Access\AccessService;
+use App\Services\Subscriptions\SubscriptionService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,10 +16,17 @@ use Illuminate\Validation\ValidationException;
 
 class AccessRequestController extends Controller
 {
-    public function store(AccessRequest $request): JsonResponse
+    public function store(AccessRequest $request, SubscriptionService $subscriptions): JsonResponse
     {
         $data = $request->validated();
         unset($data['privacy_accepted']);
+        if (! empty($data['selected_offer_key'])) {
+            $offer = collect($subscriptions->publicOffers())->firstWhere('key', $data['selected_offer_key']);
+            if (! $offer) {
+                throw ValidationException::withMessages(['selected_offer_key' => 'Selecciona un plan público vigente.']);
+            }
+            $data['selected_offer_snapshot'] = $offer;
+        }
         $reference = (string) Str::uuid();
         try {
             SolicitudAcceso::create([

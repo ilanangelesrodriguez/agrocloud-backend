@@ -15,6 +15,6 @@ class SolicitudAcceso extends Model
 
     protected function casts(): array
     {
-        return ['sunat_verificacion' => 'array', 'historial' => 'array', 'decidida_en' => 'datetime'];
+        return ['sunat_verificacion' => 'array', 'historial' => 'array', 'selected_offer_snapshot' => 'array', 'decidida_en' => 'datetime'];
     }
 }
