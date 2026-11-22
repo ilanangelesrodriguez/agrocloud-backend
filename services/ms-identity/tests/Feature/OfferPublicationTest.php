@@ -87,7 +87,7 @@ class OfferPublicationTest extends TestCase
         $this->assertSame(2, $offers[0]['version']);
     }
 
-    public function test_an_approved_plan_preference_requires_confirmation_until_payment_is_recorded(): void
+    public function test_paid_subscription_is_current_and_historical_order_is_not_enough(): void
     {
         Schema::create('solicitudes_acceso', function (Blueprint $table): void {
             $table->id();
@@ -103,6 +103,13 @@ class OfferPublicationTest extends TestCase
             $table->string('offer_key');
             $table->string('status');
         });
+        Schema::create('suscripciones', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('id_empresa');
+            $table->string('plan');
+            $table->string('estado');
+            $table->timestamp('vence_en');
+        });
         $user = new User;
         $user->setRawAttributes(['id_usuario' => 7, 'id_empresa' => 9]);
         DB::table('solicitudes_acceso')->insert(['id_usuario' => 7, 'id_empresa' => 9, 'estado' => 'APROBADA',
@@ -111,8 +118,31 @@ class OfferPublicationTest extends TestCase
         $onboarding = app(CompanyOnboarding::class);
         $this->assertSame('/settings/subscription?offer=professional', $onboarding->nextStep($user)['next']);
         $this->assertTrue($onboarding->nextStep($user)['requires_price_confirmation']);
+        // Un pago antiguo no demuestra que exista una suscripción activa.
         DB::table('identity_billing_orders')->insert(['company_id' => 9, 'offer_key' => 'professional', 'status' => 'PAID']);
+        $this->assertTrue($onboarding->nextStep($user)['requires_price_confirmation']);
+
+        DB::table('suscripciones')->insert(['id_empresa' => 9, 'plan' => 'PROFESSIONAL',
+            'estado' => 'ACTIVA', 'vence_en' => now()->addDay()]);
         $this->assertFalse($onboarding->nextStep($user)['requires_price_confirmation']);
         $this->assertSame('/dashboard', $onboarding->nextStep($user)['next']);
+
+        DB::table('suscripciones')->where('id_empresa', 9)->update(['vence_en' => now()->subDay()]);
+        $this->assertTrue($onboarding->nextStep($user)['requires_price_confirmation']);
+        DB::table('suscripciones')->where('id_empresa', 9)
+            ->update(['plan' => 'GRATUITO', 'vence_en' => now()->addDay()]);
+        $this->assertTrue($onboarding->nextStep($user)['requires_price_confirmation']);
+    }
+
+    public function test_public_free_plan_uses_validated_identity_configuration(): void
+    {
+        config(['identity.free_plan.duration_days' => 30,
+            'identity.free_plan.limits.usuarios' => 3,
+            'identity.free_plan.limits.lotes' => 20,
+            'identity.free_plan.limits.analisis_ia' => 0]);
+        $this->assertSame([
+            'duration_days' => 30,
+            'limits' => ['usuarios' => 3, 'lotes' => 20, 'analisis_ia' => 0],
+        ], app(SubscriptionService::class)->publicFreePlan());
     }
 }

@@ -20,12 +20,14 @@ class AccessRequestController extends Controller
     {
         $data = $request->validated();
         unset($data['privacy_accepted']);
+        $selection = ['type' => 'FREE', 'name' => 'Acceso gratuito'];
         if (! empty($data['selected_offer_key'])) {
             $offer = collect($subscriptions->publicOffers())->firstWhere('key', $data['selected_offer_key']);
             if (! $offer) {
                 throw ValidationException::withMessages(['selected_offer_key' => 'Selecciona un plan público vigente.']);
             }
             $data['selected_offer_snapshot'] = $offer;
+            $selection = ['type' => 'PAID', 'name' => $offer['name']];
         }
         $reference = (string) Str::uuid();
         try {
@@ -40,7 +42,12 @@ class AccessRequestController extends Controller
             throw ValidationException::withMessages(['ruc' => 'Ya existe una solicitud sin rechazar para este RUC.']);
         }
 
-        return response()->json(['message' => 'Access request received.', 'reference' => $reference], 201);
+        // Devolvemos solo la modalidad pública confirmada, nunca el expediente empresarial.
+        return response()->json([
+            'message' => 'Access request received.',
+            'reference' => $reference,
+            'selection' => $selection,
+        ], 201);
     }
 
     public function index(Request $request): JsonResponse

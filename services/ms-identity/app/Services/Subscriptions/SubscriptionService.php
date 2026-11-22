@@ -97,6 +97,29 @@ class SubscriptionService
         });
     }
 
+    /** Publica únicamente los cupos y la vigencia del plan gratuito configurado. */
+    public function publicFreePlan(): ?array
+    {
+        $duration = filter_var(config('identity.free_plan.duration_days'), FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1, 'max_range' => 366]]);
+        if ($duration === false) {
+            return null;
+        }
+
+        $limits = [];
+        foreach (['usuarios', 'lotes', 'analisis_ia'] as $resource) {
+            $limit = filter_var(config('identity.free_plan.limits.'.$resource), FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => $resource === 'usuarios' ? 1 : 0, 'max_range' => 1000000000],
+            ]);
+            if ($limit === false) {
+                return null;
+            }
+            $limits[$resource] = $limit;
+        }
+
+        return ['duration_days' => $duration, 'limits' => $limits];
+    }
+
     public function publicOffers(): array
     {
         $result = [];

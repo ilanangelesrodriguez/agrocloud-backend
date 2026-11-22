@@ -27,6 +27,9 @@ class PublicOnboardingController extends Controller
 
     public function offers(SubscriptionService $subscriptions): JsonResponse
     {
-        return response()->json(['data' => $subscriptions->publicOffers()]);
+        return response()->json([
+            'data' => $subscriptions->publicOffers(),
+            'free' => $subscriptions->publicFreePlan(),
+        ]);
     }
 }

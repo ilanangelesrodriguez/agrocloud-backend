@@ -7,6 +7,7 @@ use App\Models\Rol;
 use App\Models\SolicitudAcceso;
 use App\Models\User;
 use App\Services\Subscriptions\SubscriptionService;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -50,9 +51,13 @@ class CompanyOnboarding
         $entry = SolicitudAcceso::where('id_usuario', $user->getKey())
             ->where('id_empresa', $user->id_empresa)->where('estado', 'APROBADA')->first();
         $key = $entry?->selected_offer_key;
-        $paid = $key && DB::table('identity_billing_orders')->where('company_id', $user->id_empresa)
-            ->where('offer_key', $key)->where('status', 'PAID')->exists();
-        $confirm = $key && ! $paid;
+        // Un pago histórico no indica que la suscripción siga activa.
+        $subscription = DB::table('suscripciones')->where('id_empresa', $user->id_empresa)
+            ->first(['plan', 'estado', 'vence_en']);
+        $hasActivePaidPlan = $subscription && $subscription->plan !== 'GRATUITO'
+            && $subscription->estado === 'ACTIVA'
+            && CarbonImmutable::parse($subscription->vence_en)->isFuture();
+        $confirm = (bool) ($key && ! $hasActivePaidPlan);
 
         return [
             'selected_offer_key' => $key, 'selected_offer_snapshot' => $entry?->selected_offer_snapshot,
